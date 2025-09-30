@@ -5,14 +5,19 @@ import (
 	"GoSafe/src/Object"
 	"GoSafe/src/db"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 )
 
 type store interface {
+	GetObject(w http.ResponseWriter, r *http.Request) error
+	GetItem(w http.ResponseWriter, r *http.Request) error
+
 	AddObject(w http.ResponseWriter, r *http.Request) error
 	AddItem(w http.ResponseWriter, r *http.Request) error
 	addBatchItems([]Item.Item, int) error
@@ -27,7 +32,7 @@ type store interface {
 }
 
 type Store struct {
-	a        *Auth
+	auth     *Auth
 	database *db.Database
 	ctx      context.Context
 }
@@ -35,7 +40,6 @@ type Store struct {
 type request struct {
 	Object *Object.Object `json:"object"`
 	Item   *Item.Item     `json:"Item"`
-	userid int
 }
 
 func parseRequest(r *http.Request) (*request, error) {
@@ -54,50 +58,10 @@ func parseRequest(r *http.Request) (*request, error) {
 	return req, nil
 }
 
-func (s *Store) addObject(obj *Object.Object, userID int) error {
-	tx, err := s.database.DB.BeginTx(s.ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	res, err := tx.Query("SELECT id FROM Objects WHERE id = ?", obj.Name)
-	if err != nil {
-		return err
-	}
-
-	if res.Next() {
-		return errors.New("objects name must be unique")
-	}
-
-	tags := strings.Join(obj.Tags, ",")
-
-	_, err = s.database.DB.Exec("INSERT INTO Objects (id, name, type, owner_id, ownedBy_user) VALUES (?,?,?,?,?)", obj.Name, obj.Name, tags, obj.Container, userID)
-
-	if err != nil {
-		err = tx.Rollback()
-		if err != nil {
-			return err
-		}
-		return err
-	}
-
-	if obj.Items != nil {
-		err = s.addBatchItems(obj.Items, userID)
-		if err != nil {
-			err = tx.Rollback()
-			if err != nil {
-				return err
-			}
-			return err
-		}
-	}
-	return nil
-}
-
 func NewStore(db *db.Database, ctx context.Context) *Store {
 	return &Store{
 		database: db,
-		a:        NewAuth(db.DB),
+		auth:     NewAuth(db.DB),
 		ctx:      ctx,
 	}
 }
@@ -115,7 +79,7 @@ func (s *Store) requestValidation(r *http.Request) (*request, error) {
 	}
 
 	user := cookie.Unparsed[0]
-	ok, id := s.a.LoggedUserCheck(user, cookie.Value)
+	ok, id := s.auth.LoggedUserCheck(user, cookie.Value)
 	if !ok {
 		return nil, errors.New("invalid cookie")
 	}
@@ -125,7 +89,7 @@ func (s *Store) requestValidation(r *http.Request) (*request, error) {
 		return nil, err
 	}
 
-	req.userid = id
+	req.Object.OwnerID = id
 	return req, nil
 }
 
@@ -141,11 +105,51 @@ func (s *Store) AddObject(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("object is required")
 	}
 
-	err = s.addObject(req.Object, req.userid)
+	err = s.addObject(req.Object)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return err
+	}
+	return nil
+}
+
+func (s *Store) addObject(obj *Object.Object) error {
+	tx, err := s.database.DB.BeginTx(s.ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := tx.Query("SELECT id FROM Objects WHERE id = ?", obj.Name)
+	if err != nil {
+		return err
+	}
+
+	if res.Next() {
+		return errors.New("objects name must be unique")
+	}
+
+	tags := strings.Join(obj.Tags, ",")
+
+	_, err = s.database.DB.Exec("INSERT INTO Objects (id, name, type, owner_id, ownedBy_user) VALUES (?,?,?,?,?)", obj.Name, obj.Name, tags, obj.Container, obj.OwnerID)
+
+	if err != nil {
+		err = tx.Rollback()
+		if err != nil {
+			return err
+		}
+		return err
+	}
+
+	if obj.Items != nil {
+		err = s.addBatchItems(obj.Items, obj.OwnerID)
+		if err != nil {
+			err = tx.Rollback()
+			if err != nil {
+				return err
+			}
+			return err
+		}
 	}
 	return nil
 }
@@ -201,15 +205,9 @@ func (s *Store) UpdateObject(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	obj := req.Object
-	if obj == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return errors.New("item is required")
-	}
-
 	//if the object does not exist it is created
-	if res := s.database.DB.QueryRow("SELECT id FROM Objects WHERE id = ?", obj.Name); res.Scan() != nil {
-		err = s.addObject(obj, req.userid)
+	if res := s.database.DB.QueryRow("SELECT id FROM Objects WHERE id = ?", req.Object.Name); res.Scan() != nil {
+		err = s.addObject(req.Object)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return err
@@ -222,7 +220,7 @@ func (s *Store) UpdateObject(w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 
-		_, err = tx.Exec("UPDATE Objects SET name = ?, description = ?, owner_id = ?, ownedBy_user = ?  WHERE id = ?", obj.Name, obj.Description, obj.Container, req.userid, req.userid)
+		_, err = tx.Exec("UPDATE Objects SET name = ?, description = ?, owner_id = ?, ownedBy_user = ?  WHERE id = ?", req.Object.Name, req.Object.Description, req.Object.Container, req.Object.OwnerID, req.Object.OwnerID)
 
 		if err != nil {
 			err = tx.Rollback()
@@ -280,4 +278,46 @@ func (s *Store) addBatchItems(items []Item.Item, userID int) error {
 		}
 	}
 	return nil
+}
+
+func (s *Store) GetObject(w http.ResponseWriter, r *http.Request) error {
+	_, err := s.requestValidation(r)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return err
+	}
+
+	requestedObject := r.PathValue("id")
+
+	tx, err := s.database.DB.BeginTx(s.ctx, nil)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	//TODO move requests handling up one layer to the http packages, it should do all the pre-work before storage (auth, parsing and validation)
+	userView := fmt.Sprintf("user%d_view", requestedObject)
+
+	res := tx.QueryRow("SELECT id FROM ? WHERE id = ?", userView, requestedObject)
+	obj := new(Object.Object)
+
+	if err = res.Scan(obj); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(http.StatusNotFound)
+			return err
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		body, err := json.Marshal(obj)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return err
+		}
+		_, err = w.Write(body)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 }
