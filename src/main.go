@@ -1,39 +1,40 @@
 package main
 
 import (
-	"GoSafe/src/Store"
-	"GoSafe/src/db"
+	db "GoSafe/src/db"
+	net "GoSafe/src/net"
 	"context"
 	"log"
-	"net/http"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
-	database := db.NewDatabase(db.Options{
-		Url:             "./testingDatabase/organizer.db",
-		Test:            true,
+	err := os.Setenv("TEST_FOLDER", "./testingDatabase")
+	if err != nil {
+		panic(err)
+	}
+	options := db.Options{
+		Url:             "./testingDatabase/testingDatabase.db",
+		Test:            false,
 		MaxOpenConn:     100,
 		MaxIdleConn:     100,
 		MaxConnLifetime: 0,
-	})
+		Log:             log.Default(),
+	}
 
-	err := database.Connect()
+	database := db.NewDatabase(options)
+	err = database.Connect()
 	if err != nil {
 		panic(err)
 	}
 
-	storage := Store.NewStore(database, context.Background())
+	server := net.NewServer(database, context.Background())
+	err = server.Serve()
 
-	http.HandleFunc("GET /item/{id}", func(h http.ResponseWriter, r *http.Request) {
-		log.Println(storage.AddItem(h, r))
-	})
-	http.HandleFunc("PUT /item", func(h http.ResponseWriter, r *http.Request) {
-		log.Println(storage.UpdateItem(h, r))
-	})
-	http.HandleFunc("DELETE /item/{id}", func(h http.ResponseWriter, r *http.Request) {
-		log.Println(storage.DeleteItem(h, r))
-	})
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
 }

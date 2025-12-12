@@ -1,4 +1,4 @@
-package Store
+package net
 
 import (
 	"GoSafe/src/db"
@@ -16,27 +16,31 @@ import (
 var loggedInUsers = map[string]session{
 	// testing user for registration and login
 	"user0": {
-		sessionID: "userSessionID",
-		begin:     time.Now(),
-		end:       time.Now().AddDate(0, 0, 1),
+		username: "user0",
+		userID:   0,
+		begin:    time.Now(),
+		end:      time.Now().AddDate(0, 0, 1),
 	},
 	// valid user
 	"user1": {
-		sessionID: "user1SessionID",
-		begin:     time.Now(),
-		end:       time.Now().AddDate(0, 0, 1),
+		username: "user1",
+		userID:   1,
+		begin:    time.Now(),
+		end:      time.Now().AddDate(0, 0, 1),
 	},
 	// valid user, expired session
 	"user2": {
-		sessionID: "user2SessionID",
-		begin:     time.Now(),
-		end:       time.Now().AddDate(0, 0, -1),
+		username: "user2",
+		userID:   2,
+		begin:    time.Now(),
+		end:      time.Now().AddDate(0, 0, -1),
 	},
-	// valid user
+	// invalid user
 	"user3": {
-		sessionID: "user3SessionID",
-		begin:     time.Now(),
-		end:       time.Now().AddDate(0, 0, 3),
+		username: "user3",
+		userID:   3,
+		begin:    time.Now(),
+		end:      time.Now().AddDate(0, 0, 3),
 	},
 }
 
@@ -131,7 +135,6 @@ func TestAuth_Login(t *testing.T) {
 }
 
 func TestAuth_Logout(t *testing.T) {
-
 	type fields struct {
 		db          *sql.DB
 		loggedUsers map[string]session
@@ -156,8 +159,8 @@ func TestAuth_Logout(t *testing.T) {
 				lock:        sync.RWMutex{},
 			},
 			args: args{
-				username:  "user3",
-				sessionID: loggedInUsers["user3"].sessionID,
+				username:  loggedInUsers["user3"].username,
+				sessionID: "user3",
 			},
 			wantErr: false,
 			expectedUsers: func() map[string]session {
@@ -203,8 +206,8 @@ func TestAuth_Logout(t *testing.T) {
 				lock:        sync.RWMutex{},
 			},
 			args: args{
-				username:  "user2",
-				sessionID: loggedInUsers["user2"].sessionID,
+				username:  loggedInUsers["user2"].username,
+				sessionID: "user2",
 			},
 			wantErr:       false,
 			expectedUsers: loggedInUsers,
@@ -380,8 +383,8 @@ func TestAuth_LoggedUserCheck(t *testing.T) {
 				lock:        sync.RWMutex{},
 			},
 			args: args{
-				username:  "user1",
-				sessionID: loggedInUsers["user1"].sessionID,
+				username:  loggedInUsers["user1"].username,
+				sessionID: "user1",
 			},
 			want: true,
 		},
@@ -393,8 +396,8 @@ func TestAuth_LoggedUserCheck(t *testing.T) {
 				lock:        sync.RWMutex{},
 			},
 			args: args{
-				username:  "user2",
-				sessionID: loggedInUsers["user2"].sessionID,
+				sessionID: "user2",
+				username:  loggedInUsers["user2"].username,
 			},
 			want: false,
 		},
@@ -419,7 +422,7 @@ func TestAuth_LoggedUserCheck(t *testing.T) {
 				loggedUsers: tt.fields.loggedUsers,
 				lock:        tt.fields.lock,
 			}
-			if got, _ := a.LoggedUserCheck(tt.args.username, tt.args.sessionID); got != tt.want {
+			if got, _ := a.LoggedUserCheck(tt.args.sessionID); got != tt.want {
 				t.Errorf("IsUserLogged() = %v, want %v", got, tt.want)
 			}
 		})
@@ -456,8 +459,8 @@ func TestAuth_Delete(t *testing.T) {
 				lock:        sync.RWMutex{},
 			},
 			args: args{
-				username:  "user0",
-				sessionID: loggedInUsers["user0"].sessionID,
+				sessionID: "user0",
+				username:  loggedInUsers["user0"].username,
 				password:  "foobar123",
 			},
 			wantErr: false,
@@ -482,14 +485,14 @@ func TestAuth_Delete(t *testing.T) {
 				db: testDB.DB,
 				loggedUsers: map[string]session{
 					"user1": session{
-						sessionID: "user1",
-						begin:     time.Now(),
-						end:       time.Now().Add(time.Hour),
+						username: "user1",
+						begin:    time.Now(),
+						end:      time.Now().Add(time.Hour),
 					},
 					"user2": session{
-						sessionID: "user2",
-						begin:     time.Now(),
-						end:       time.Now().Add(time.Hour),
+						username: "user2",
+						begin:    time.Now(),
+						end:      time.Now().Add(time.Hour),
 					},
 				},
 				lock: sync.RWMutex{},
@@ -509,8 +512,8 @@ func TestAuth_Delete(t *testing.T) {
 				lock:        sync.RWMutex{},
 			},
 			args: args{
-				username:  "user0",
-				sessionID: loggedInUsers["user0"].sessionID,
+				sessionID: "user0",
+				username:  loggedInUsers["user0"].username,
 				password:  "wrongPassword",
 			},
 			wantErr: true,

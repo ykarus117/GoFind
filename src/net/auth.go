@@ -1,4 +1,4 @@
-package Store
+package net
 
 import (
 	cryptorand "crypto/rand"
@@ -9,13 +9,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"sync"
 	"time"
 )
 
 type auth interface {
-	LoggedUserCheck(username string, sessionIDs string) (bool, int)
+	LoggedUserCheck(sessionIDs string) (bool, int)
 	Register(username string, password string) error
 	Login(username string, password string) (*http.Cookie, error)
 	Logout(username string, sessionID string) error
@@ -24,10 +23,10 @@ type auth interface {
 }
 
 type session struct {
-	sessionID string
-	userID    int
-	begin     time.Time
-	end       time.Time
+	username string
+	userID   int
+	begin    time.Time
+	end      time.Time
 }
 
 type Auth struct {
@@ -46,30 +45,27 @@ func NewAuth(db *sql.DB) *Auth {
 
 // LoggedUserCheck returns true if and only if the user is logged in, presents a valid sessionID and the session is not expired
 // returns the user unique ID or -1
-func (a *Auth) LoggedUserCheck(username string, sessionID string) (bool, int) {
+func (a *Auth) LoggedUserCheck(sessionID string) (bool, int) {
 	a.lock.RLock()
-	userSession, ok := a.loggedUsers[username]
+	userSession, ok := a.loggedUsers[sessionID]
 	a.lock.RUnlock()
+
 	if !ok {
 		return false, -1
 	}
+
 	if time.Until(userSession.end) <= 0 {
 		a.lock.Lock()
-		delete(a.loggedUsers, username)
+		delete(a.loggedUsers, sessionID)
 		a.lock.Unlock()
 		return false, -1
 	}
-	if sessionID == userSession.sessionID {
-		return true, userSession.userID
-	}
-
-	return false, -1
+	return true, userSession.userID
 }
 
 func (a *Auth) passwordCheck(username string, password string) bool {
 	var salt []byte
 	var hashPwd []byte
-
 	pwdHash := sha256.New()
 
 	res := a.db.QueryRow("SELECT salt, pwd FROM Users WHERE username = ?", username)
@@ -107,8 +103,8 @@ func (a *Auth) passwordCheck(username string, password string) bool {
 func (a *Auth) Delete(username string, sessionID string, password string) error {
 	if a.passwordCheck(username, password) {
 		a.lock.Lock()
-		if a.loggedUsers[username].sessionID == sessionID {
-
+		//necessary? can't hurt I guess
+		if a.loggedUsers[sessionID].username == username {
 			delete(a.loggedUsers, username)
 			a.lock.Unlock()
 
@@ -138,23 +134,31 @@ func (a *Auth) Login(username string, password string) (*http.Cookie, error) {
 		return nil, errors.New("invalid password")
 	}
 
-	a.lock.Lock()
+	res := a.db.QueryRow("SELECT ID FROM Users where username = ?", username)
+	var id int
 
-	a.loggedUsers[username] = session{
-		sessionID: cryptorand.Text(),
-		begin:     time.Now(),
-		end:       time.Now().AddDate(0, 3, 0),
+	if err := res.Scan(&id); err != nil {
+		return nil, errors.New("ugh, how?")
+	}
+
+	sessionID := cryptorand.Text()
+	a.lock.Lock()
+	a.loggedUsers[sessionID] = session{
+		username: username,
+		userID:   id,
+		begin:    time.Now(),
+		end:      time.Now().AddDate(0, 3, 0),
 	}
 
 	a.lock.Unlock()
 
+	//TODO: export cookie name globally
 	cookie := &http.Cookie{
-		Value:    a.loggedUsers[username].sessionID,
+		Value:    sessionID,
 		Name:     "sessionCookie",
 		HttpOnly: true,
 		Secure:   true,
 		Expires:  a.loggedUsers[username].end,
-		Unparsed: []string{"username=" + username + ";"},
 	}
 
 	return cookie, nil
@@ -171,23 +175,11 @@ func (a *Auth) Register(username string, password string) error {
 	}
 
 	if len(username) < 3 {
-		return errors.New("username too short")
+		return errors.New("username too short. Minimum 3 characters")
 	}
 
 	if len(password) < 8 {
-		return errors.New("password too short")
-	}
-
-	onlyLowerCase := regexp.MustCompile("^[a-z]+$")
-
-	if onlyLowerCase.MatchString(password) {
-		return errors.New("invalid format 1")
-	}
-
-	onlyNumbers := regexp.MustCompile("^[0-9]+$")
-
-	if onlyNumbers.MatchString(password) {
-		return errors.New("invalid format 2")
+		return errors.New("password too short. Minimum 8 characters")
 	}
 
 	pwdHash := sha256.New()
@@ -229,10 +221,15 @@ func (a *Auth) Register(username string, password string) error {
 		return err
 	}
 
-	view := fmt.Sprintf("CREATE VIEW user%d_objects AS SELECT * FROM Objects WHERE ownedBy_user = %d", insertId, insertId)
+	Objectview := fmt.Sprintf("CREATE VIEW user%d_objects AS SELECT * FROM Objects WHERE ownedBy_user = %d", insertId, insertId)
+	Itemview := fmt.Sprintf("CREATE VIEW user%d_items AS SELECT * FROM ITEMS WHERE ownedBy_user = %d", insertId, insertId)
 
-	_, err = tx.Exec(view)
+	_, err = tx.Exec(Objectview)
+	if err != nil {
+		return err
+	}
 
+	_, err = tx.Exec(Itemview)
 	if err != nil {
 		return err
 	}
@@ -247,20 +244,16 @@ func (a *Auth) Register(username string, password string) error {
 
 func (a *Auth) Logout(username string, sessionID string) error {
 	a.lock.RLock()
-	userSession, ok := a.loggedUsers[username]
+	_, ok := a.loggedUsers[sessionID]
 	a.lock.RUnlock()
 
 	if !ok {
 		return errors.New("user not found")
 	}
 
-	if sessionID != userSession.sessionID {
-		return errors.New("invalid session")
-	}
-
 	a.lock.Lock()
 	defer a.lock.Unlock()
-	delete(a.loggedUsers, username)
+	delete(a.loggedUsers, sessionID)
 
 	return nil
 }
