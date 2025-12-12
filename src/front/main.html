@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoFind</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="../index.js" type="text/javascript" defer></script>
+</head>
+<body>
+<div class="page-container" id="pageContainer">
+  <div id="mainContent" class="page-container">
+    <header class="header">
+      <div class="header-content">
+        <h1>GoFind</h1>
+        <div>
+          <button id="fetchAllBtn" style="width: auto; padding: 0.5em 1em; margin-right: 1em;">Fetch/Refresh All</button>
+          <button id="logoutBtn" style="width: auto; padding: 0.5em 1em;">Logout</button>
+        </div>
+      </div>
+    </header>
+    <div class="main-layout">
+      <div class="left-panel" id="detailsPanel">
+        <h2>Details</h2>
+        <div id="detailsContainer">Select an object to see its contents.</div>
+      </div>
+      <div class="center-panel" id="viewPanel">
+        <h2>Objects</h2>
+        <div id="objectGridContainer"></div>
+      </div>
+      <div class="right-panel">
+        <details class="actions-section" open>
+          <summary>Actions</summary>
+          <section>
+            <h2>Create Item</h2>
+            <div class="form-group"><label for="create-name">Name:</label><input type="text" id="create-name"></div>
+            <div class="form-group"><label for="create-quantity">Quantity:</label><input type="number" id="create-quantity"></div>
+            <div class="form-group"><label for="create-description">Description:</label><input type="text" id="create-description"></div>
+            <div class="form-group"><label for="create-tags">Tags (comma-separated):</label><input type="text" id="create-tags"></div>
+            <div class="form-group"><label for="create-object">Container Name:</label><input type="text" id="create-object"></div>
+            <button id="createBtn">Create Item</button>
+          </section>
+          <hr style="border-color: #555; margin: 2em 0;">
+          <section>
+            <h2>Create Object</h2>
+            <div class="form-group"><label for="create-obj-name">Name:</label><input type="text" id="create-obj-name"></div>
+            <div class="form-group"><label for="create-obj-description">Description:</label><input type="text" id="create-obj-description"></div>
+            <div class="form-group"><label for="create-obj-tags">Tags (comma-separated):</label><input type="text" id="create-obj-tags"></div>
+            <div class="form-group"><label for="create-obj-container">Container Name:</label><input type="text" id="create-obj-container"></div>
+            <button id="createObjBtn">Create Object</button>
+          </section>
+        </details>
+        <hr style="border-color: #555; margin: 2em 0;">
+        <details class="response-section">
+          <summary>Response Log</summary>
+          <div id="response">API responses will appear here...</div>
+        </details>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
