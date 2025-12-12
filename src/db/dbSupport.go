@@ -9,6 +9,7 @@ import (
 
 // TestInit Spawns a populated in-memory database for testing purposes
 func TestInit() (*Database, error) {
+	log.Default().Println("TestInit should only be used for testing")
 	options := Options{
 		Url:             "file:" + cryptorand.Text(),
 		Test:            true,
@@ -18,15 +19,19 @@ func TestInit() (*Database, error) {
 		Log:             log.Default(),
 	}
 
+	testingFolder := os.Getenv("TEST_FOLDER")
+	if testingFolder == "" {
+		panic("Missing TEST_FOLDER environment variable")
+	}
+
 	database := NewDatabase(options)
 
 	err := database.Connect()
-
 	if err != nil {
 		return nil, err
 	}
 
-	file, err := os.Open("../../testingDatabase/schema.sql")
+	file, err := os.Open(testingFolder + "schema.sql")
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +46,7 @@ func TestInit() (*Database, error) {
 		return nil, err
 	}
 
-	insert, err := os.Open("../../testingDatabase/testState.sql")
+	insert, err := os.Open(testingFolder + "testState.sql")
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +62,4 @@ func TestInit() (*Database, error) {
 	}
 
 	return database, nil
-}
-
-func dbInit(db *Database) {
-
 }

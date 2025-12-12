@@ -29,11 +29,11 @@ func NewDatabase(Options Options) *Database {
 	// In-memory database for testing, using a :memory: database will incur in errors as transactions open with .Begin() seem to open a new connection
 	// and sqlite supports only one connection per :memory: database
 	if Options.Test {
-		url = Options.Url + "?mode=memory&cache=shared"
+		url = Options.Url + "?cache=shared&mode=memory"
 	} else {
-		url = Options.Url + "?journal=WAL&timeout=2500"
+		// Remember to build with 'sqlite_foreign_keys' to enable fk for all connections
+		url = "file:" + Options.Url + "?journal=WAL&timeout=2500?"
 	}
-
 	return &Database{
 		url:         url,
 		DB:          nil,
