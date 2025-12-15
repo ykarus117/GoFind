@@ -425,6 +425,12 @@ func TestStore_GetView(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	testDB, err := db.TestInit()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	type fields struct {
 		database *db.Database
 		ctx      context.Context
@@ -436,10 +442,20 @@ func TestStore_GetView(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    []Object
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+		{
+			name: "Existing View",
+			fields: fields{
+				database: testDB,
+				ctx:      context.Background(),
+			},
+			args: args{
+				userID: 0,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -452,9 +468,7 @@ func TestStore_GetView(t *testing.T) {
 				t.Errorf("GetView() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetView() got = %v, want %v", got, tt.want)
-			}
+			println(got)
 		})
 	}
 }

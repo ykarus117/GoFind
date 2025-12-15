@@ -5,9 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
-	"regexp"
 	"strings"
 
 	"github.com/mattn/go-sqlite3"
@@ -58,6 +56,16 @@ type Store struct {
 	NotFound    *NotFoundError
 	Internal    *InternalError
 	FormatError *FormatError
+}
+
+type ViewItem struct {
+	Name string `json:"name"`
+	Ref  int    `json:"ref"`
+}
+
+type ViewObject struct {
+	Name     string `json:"name"`
+	Children []any  `json:"children"`
 }
 
 func NewStore(db *db.Database, ctx context.Context) *Store {
@@ -178,15 +186,10 @@ func (s *Store) setObjectTags(tx *sql.Tx, tags []string, objectID int) error {
 	return nil
 }
 
-// TODO: not compatible with new schema rn
-func (s *Store) GetView(userID int) (map[string][]*Object, error) {
-	view := make(map[string][]*Object)
-
-	//object for loose items
-	view[""] = []*Object{&Object{
-		Name:  "",
-		Items: make([]Item, 0),
-	},
+func (s *Store) GetView(userID int) (*ViewObject, error) {
+	view := &ViewObject{
+		Name:     "root",
+		Children: make([]any, 0),
 	}
 
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
@@ -212,116 +215,48 @@ func (s *Store) GetView(userID int) (map[string][]*Object, error) {
 		}
 	}()
 
-	objects, err := tx.Query("SELECT id, name, description FROM Objects where ownedBy_user = ? and owner_id is NULL", userID)
+	res, err := tx.Query(
+		"SELECT Objects.name, Objects.id, I.owned_by, I.name, I.id FROM Objects LEFT JOIN Items I ON Objects.id = I.owned_by WHERE Objects.ownedBy_user = ? ORDER BY Objects.id",
+		userID)
 
 	if err != nil {
-		s.Internal.message = err.Error()
-		return nil, s.Internal
+		return nil, err
 	}
 
-	//creates a list of top-level objects
-	for objects.Next() {
-		var newObject Object
-		newObject.Items = make([]Item, 0)
-		var id int64
-		err = objects.Scan(&id, &newObject.Name, &newObject.Description)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				break
-			}
-			s.Internal.message = err.Error()
-			return nil, s.Internal
-		}
+	var objName string
+	var itemName sql.NullString
+	var objID int
+	var objOwner, itemID sql.NullInt64
+	var temp int
+	root := view
 
-		tags, err := s.readObjectTags(tx, int(id))
-		if err != nil {
-			s.Internal.message = err.Error()
-			return nil, s.Internal
-		} else {
-			newObject.Tags = tags
-		}
-
-		view[newObject.Name] = []*Object{&newObject}
-	}
-
-	innerObjects, err := tx.Query("SELECT id,name,owner_id,description FROM Objects where ownedBy_user = ? AND owner_id is NOT NULL", userID)
-
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		s.Internal.message = err.Error()
-		return nil, s.Internal
-	}
-
-	for innerObjects.Next() {
-		var newObject Object
-		var id int64
-		err := innerObjects.Scan(&id, &newObject.Name, &newObject.Container, &newObject.Description)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				break
-			}
-			s.Internal.message = err.Error()
-			return nil, s.Internal
-		}
-
-		tags, err := s.readObjectTags(tx, int(id))
-		if err != nil {
-			s.Internal.message = err.Error()
-			return nil, s.Internal
-		} else {
-			newObject.Tags = tags
-		}
-
-		_, ok := view[newObject.Container]
-		if ok {
-			view[newObject.Container] = append(view[newObject.Container], &newObject)
-		}
-		//we do not care otherwise
-	}
-
-	//TODO: this should be optimizable in one single query without listing every object
-	res, err := tx.Query("SELECT id, name, description, quantity, owned_by FROM Items where ownedBy_user = ?", userID)
-
-	if err != nil {
-		s.Internal.message = err.Error()
-		return nil, s.Internal
-	}
-
-	//populate top level items and loose items
 	for res.Next() {
-		var newItem Item
-		var container sql.NullString
-		err = res.Scan(&newItem.Id, &newItem.Name, &newItem.Description, &newItem.Quantity, &container)
+		err := res.Scan(&objName, &objID, &objOwner, &itemName, &itemID)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return view, nil
+			return nil, err
+		}
+		if temp != objID {
+			temp = objID
+			next := &ViewObject{
+				Name:     objName,
+				Children: make([]any, 0),
 			}
-			s.Internal.message = err.Error()
-			return nil, s.Internal
-		}
-
-		tags, err := s.readItemsTags(tx, newItem.Id)
-		if err != nil {
-			s.Internal.message = err.Error()
-			return nil, s.Internal
+			if !objOwner.Valid {
+				root.Children = append(root.Children, next)
+			} else {
+				view.Children = append(view.Children, next)
+			}
+			view = next
 		} else {
-			newItem.Tags = tags
-		}
-
-		if container.Valid {
-			newItem.Container = container.String
-		} else {
-			newItem.Container = ""
-		}
-
-		owner, ok := view[newItem.Container]
-		if !ok {
-			// this item is contained somewhere not top-level, ignore it
-			continue
-		} else {
-			owner[0].Items = append(owner[0].Items, newItem)
+			if itemName.Valid {
+				view.Children = append(view.Children, &ViewItem{
+					Name: itemName.String,
+					Ref:  int(itemID.Int64),
+				})
+			}
 		}
 	}
-	return view, nil
+	return root, nil
 }
 
 func (s *Store) AddObject(obj *Object, userID int) error {
@@ -843,46 +778,8 @@ func (s *Store) GetItem(itemID int, userID int) (*Item, error) {
 	return item, nil
 }
 
-// SearchItems TODO: rewrite this
+// SearchItems TODO: implement
 func (s *Store) SearchItems(param string, value string, userID int) (map[int]Item, error) {
-	tx, err := s.database.DB.BeginTx(s.ctx, nil)
-	if err != nil {
-		s.Internal.message = err.Error()
-		return nil, s.Internal
-	}
-	defer tx.Commit()
-
-	regParam := regexp.MustCompile("^[A-z]*$")
-	regValue := regexp.MustCompile("^[A-z-0-9]*$")
-
-	if !regParam.MatchString(param) || !regValue.MatchString(value) {
-		s.FormatError.message = "invalid format"
-		return nil, s.FormatError
-	}
-
-	query := fmt.Sprintf("SELECT id, name FROM Items WHERE ownedBy_user = ? and %s = %s  > 0", param, value)
-	res, err := tx.Query(query, userID)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, s.NotFound
-		}
-		s.Internal.message = err.Error()
-		return nil, s.Internal
-	}
-
-	items := make(map[int]Item)
-
-	for res.Next() {
-		var item Item
-		var id int
-		err := res.Scan(&id, &item.Name)
-		if err != nil {
-			s.Internal.message = err.Error()
-			return nil, s.Internal
-		}
-		items[id] = item
-	}
-
-	return items, nil
+	panic("Implement me")
+	return nil, nil
 }
