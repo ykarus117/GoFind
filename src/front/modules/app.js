@@ -19,7 +19,7 @@ function updateGrid(svg, zoomEvent) {
         .attr('opacity', Math.min(zoomEvent.transform.k, 1)); // Lower opacity as the pattern gets more dense.
 }
 
-export function drawTree(data) {
+export function drawTree(data, callback) {
     // Create a radial tree layout. The layout’s first dimension (x)
     // is the angle, while the second (y) is the radius.
     const tree = d3
@@ -72,7 +72,7 @@ export function drawTree(data) {
     const gLink = content
         .append("g")
         .attr("fill", "none")
-        .attr("stroke", "#000000")
+        .attr("stroke", "#2e6fde")
         .attr("stroke-opacity", 0.55)
         .attr("stroke-width", 1.3);
 
@@ -128,6 +128,7 @@ export function drawTree(data) {
                     d.children = d.children ? null : d._children;
                     update(event, d);
                 }
+                callback(d.data)
             })
             .on('mouseover', function(event, d) {
                 d3.select(this).select('text')
@@ -144,7 +145,7 @@ export function drawTree(data) {
             .filter((d) => d.depth > 0)
             .append("circle")
             .attr("r", (d) => (d._children ? 3.5 : 2.5))
-            .attr("fill", (d) => (d._children ? "#0096FF" : "rgba(39,217,11,0.85)"))
+            .attr("fill", (d) => (!d.data["ref"] ? "#0096FF" : "rgba(39,217,11,0.85)"))
             .attr("stroke-width", 10);
 
         nodeEnter
@@ -161,9 +162,10 @@ export function drawTree(data) {
                     })`
             )
             .text((d) => d.data.name)
+            .attr("fill", "white")
             .attr("stroke-linejoin", "round")
-            .attr("stroke-width", 3)
-            .attr("stroke", "white")
+            .attr("stroke-width", 1)
+            .attr("stroke", "gray")
             .attr("paint-order", "stroke");
 
         const nodeUpdate = node.merge(nodeEnter);
@@ -270,12 +272,14 @@ export function drawTree(data) {
         .attr('transform',((d) => `translate(${-cx+5}, ${-cy+17})`))
 
     svg.append('text')
+        .attr("fill","white")
         .attr('id', 'legend')
         .attr('x', -cx+10)
         .attr('y', -cy+10)
         .text('Objects');
 
     svg.append('text')
+        .attr("fill","white")
         .attr('id', 'legend')
         .attr('x', -cx+10)
         .attr('y', -cy+20)

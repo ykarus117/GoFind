@@ -41,6 +41,7 @@ h1, h2 {
 }
 
 .left-panel {
+    flex: 1;
     width: 350px;
     border-right: 1px solid var(--border-color);
     padding: 1em;
@@ -54,6 +55,7 @@ h1, h2 {
 }
 
 .right-panel {
+    flex: 1;
     width: 350px;
     border-left: 1px solid var(--border-color);
     padding: 1em;
@@ -125,6 +127,8 @@ button.delete-btn:hover {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
 }
+
+
 
 .card {
     background: var(--card-bg);
