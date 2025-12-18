@@ -1,6 +1,6 @@
 :root {
     --bg-color: #333;
-    --text-color: #eee;
+    --text-color: #ffffff;
     --border-color: #555;
     --primary-color: #007acc;
     --primary-hover: #005c99;
@@ -51,11 +51,11 @@ h2.view {
     display: flex;
     flex: 1;
     overflow: hidden;
+    height: 100%;
 }
 
 .left-panel {
-    width: 25%;
-    resize: horizontal;
+    width: 15%;
     border-right: 1px solid var(--border-color);
     padding: 1em;
     overflow-y: auto;
@@ -63,9 +63,8 @@ h2.view {
 
 .center-panel {
     flex: 1;
-    padding: 1em;
+    padding: 0.5em;
     overflow-y: clip;
-    height: 100%;
 }
 
 .right-panel {
@@ -97,6 +96,21 @@ input, button {
     border-radius: 4px;
 }
 
+.treeContainer {
+    display: block;
+    border-radius: 8px;
+    height: 85%;
+    margin: 5px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.treeContainer .tree {
+    width: 100%;
+    height: auto;
+    color: var(--text-color);
+}
+
 button {
     max-width: 90%;
     margin: 0.25em;
@@ -125,7 +139,14 @@ button.delete-btn:hover {
 }
 
 .header { padding: 0 1em; border-bottom: 1px solid var(--border-color); background: var(--panel-bg); }
-.header-content {max-width: 100%; margin: auto; display: flex; justify-content: space-between; align-items: center; }
+
+.header-content {
+    display: flex;
+    max-width: 100%;
+    margin: auto;
+    justify-content: space-between;
+    align-items: center;
+}
 
 .errorMessage {
     color: darkred
@@ -230,6 +251,33 @@ button.delete-btn:hover {
     flex-shrink: 0;
 }
 
+.createPanel {
+    display: flex;
+    visibility: hidden;
+    align-items: center;
+    inset: 0;
+    position: fixed;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(1px);
+}
+
+.createPanel .panel {
+    animation-direction: normal;
+    animation-duration: 1s;
+    animation-fill-mode: both;
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+    height: 50%;
+    backdrop-filter: none;
+    border-radius: 8px;
+    padding: 1em;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+}
+
 details summary {
     cursor: pointer;
     padding: 0.5em;
@@ -269,4 +317,18 @@ details summary {
 
 .json-value-null {
     color: #f97583;
+}
+
+.line-md--search-twotone {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'%3E%3Cpath fill='%23000' fill-opacity='0' stroke-dasharray='40' stroke-dashoffset='40' d='M10.76 13.24c-2.34 -2.34 -2.34 -6.14 0 -8.49c2.34 -2.34 6.14 -2.34 8.49 0c2.34 2.34 2.34 6.14 0 8.49c-2.34 2.34 -6.14 2.34 -8.49 0Z'%3E%3Canimate fill='freeze' attributeName='fill-opacity' begin='0.7s' dur='0.15s' values='0;0.3'/%3E%3Canimate fill='freeze' attributeName='stroke-dashoffset' dur='0.5s' values='40;0'/%3E%3C/path%3E%3Cpath stroke-dasharray='12' stroke-dashoffset='12' d='M10.5 13.5l-7.5 7.5'%3E%3Canimate fill='freeze' attributeName='stroke-dashoffset' begin='0.5s' dur='0.2s' values='12;0'/%3E%3C/path%3E%3C/g%3E%3C/svg%3E");
+    background-color: currentColor;
+    -webkit-mask-image: var(--svg);
+    mask-image: var(--svg);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
 }

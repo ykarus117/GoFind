@@ -1,8 +1,14 @@
+// Compute dynamic sizes (with sensible minimums)
+const containerId = 'treeContainer';
+const container = document.getElementById(containerId);
+const rect = container ? container.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
+
+const width = Math.max(320, Math.floor(rect.width || window.innerWidth));
+const height = Math.max(240, Math.floor(rect.height || Math.floor(window.innerHeight * 0.6)));
+
 const gridSize= 35;
 const gridDotSize= 2;
-const gridColor= '#a4a4a4';
-const width= 900;
-const height= 600;
+const gridColor= '#e7e7e7';
 const cx= width * 0.5;
 const cy= height * 0.5;
 const radius= Math.min(width, height) / 2 - 100;
@@ -22,6 +28,7 @@ function updateGrid(svg, zoomEvent) {
 export function drawTree(data, callback) {
     // Create a radial tree layout. The layout’s first dimension (x)
     // is the angle, while the second (y) is the radius.
+
     const tree = d3
         .tree()
         .size([2 * Math.PI, radius])
@@ -43,7 +50,7 @@ export function drawTree(data, callback) {
         .attr("width", width)
         .attr("height", height)
         .attr("viewBox", [-cx, -cy, width, height])
-        .attr("style", "width: 100%; height: auto; font: 10px sans-serif;");
+        .attr("class", "tree");
 
     svg.append('pattern')
         .attr('id', 'dot-pattern')
@@ -162,10 +169,10 @@ export function drawTree(data, callback) {
                     })`
             )
             .text((d) => d.data.name)
-            .attr("fill", "white")
+            .attr("fill", "var(--text-color)")
             .attr("stroke-linejoin", "round")
             .attr("stroke-width", 1)
-            .attr("stroke", "gray")
+            .attr("stroke", "black")
             .attr("paint-order", "stroke");
 
         const nodeUpdate = node.merge(nodeEnter);
@@ -258,32 +265,6 @@ export function drawTree(data, callback) {
             d.children = null;
         }
     });
-
-    svg.append("circle")
-        .attr("r", 2.5)
-        .attr("fill","#0096FF")
-        .attr("stroke-width", 10)
-        .attr('transform',((d) => `translate(${-cx+5}, ${-cy+7})`))
-
-    svg.append("circle")
-        .attr("r", 2.5)
-        .attr("fill", '#27D90BD8')
-        .attr("stroke-width", 10)
-        .attr('transform',((d) => `translate(${-cx+5}, ${-cy+17})`))
-
-    svg.append('text')
-        .attr("fill","white")
-        .attr('id', 'legend')
-        .attr('x', -cx+10)
-        .attr('y', -cy+10)
-        .text('Objects');
-
-    svg.append('text')
-        .attr("fill","white")
-        .attr('id', 'legend')
-        .attr('x', -cx+10)
-        .attr('y', -cy+20)
-    .text('Items');
 
     svg.call(d3.zoom()
         .scaleExtent([0.25, 2])

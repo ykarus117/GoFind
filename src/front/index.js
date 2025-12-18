@@ -3,6 +3,8 @@ import {drawTree} from "./modules/app.js";
 const API_BASE_URL = location.origin;
 const responseArea = document.getElementById('response');
 const detailsContainer = document.getElementById('detailsPanel');
+const createPanel = document.getElementById('createPanel');
+
 
 let fullDataObject = {};
 const fetchOptions = {credentials: 'same-origin'};
@@ -72,6 +74,23 @@ async function callback(selected) {
             displayError(response.status);
         }
     }
+}
+
+function populateDetails (object){
+    if (!object) return;
+    detailsContainer.hidden = false;
+    const details = document.getElementById('details');
+    document.getElementById('detailHeaderName').innerText = object["name"];
+
+    details.innerHTML = '';
+
+    for (const key in object) {
+        const div = document.createElement('div');
+        div.classList.add('form-group');
+        div.innerHTML = `<label for="D-${key}">${key}:</label><input id="D-${key}" type="text" placeholder="${object[key]}">`
+        details.appendChild(div)
+    }
+
 }
 
 // --- API Call Functions ---
@@ -151,26 +170,8 @@ async function deleteObject(name) {
     }
 }
 
-function populateDetails (object){
-    if (!object) return;
-    detailsContainer.hidden = false;
-    const details = document.getElementById('details');
-    document.getElementById('detailHeaderName').innerText = object["name"];
-
-    details.innerHTML = '';
-
-    for (const key in object) {
-        const div = document.createElement('div');
-        div.classList.add('form-group');
-        div.innerHTML = `<label for="D-${key}">${key}:</label><input id="D-${key}" type="text" placeholder="${object[key]}">`
-        details.appendChild(div)
-    }
-
-}
-
-
 // --- Event Listeners ---
-document.getElementById('createBtn').addEventListener('click', async () => {
+document.getElementById('updateBtn').addEventListener('click', async () => {
     const name = document.getElementById('create-name').value;
     const itemData = {
         Item: {
@@ -205,3 +206,10 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 document.getElementById('detailSectionBtn').addEventListener('click', () => {
     document.getElementById("detailsPanel").setAttribute("hidden", "");
 })
+
+document.getElementById('newBtn').addEventListener('click', () => {
+    console.log("here");
+    createPanel.style.visibility = "visible";
+})
+
+document.getElementById('searchBar').addEventListener('keyup', () => {})

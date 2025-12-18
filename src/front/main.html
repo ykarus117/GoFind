@@ -7,43 +7,53 @@
   <link href="style.css" rel="stylesheet">
   <script type="module" src="./index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-    <script src="https://kit.fontawesome.com/e419e050e4.js" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="page-container" id="pageContainer">
   <div class="page-container" id="mainContent">
     <header class="header">
       <div class="header-content">
-        <h1><span style="color: dodgerblue; margin-right: -1%" > Go </span><span style="color: white;"> Find </span></h1>
+        <h1><span style="color: dodgerblue; margin-right: -1%" > Go </span><span style="color: white;"> Find </span>
+          <span class="line-md--search-twotone"></span>
+        </h1>
         <div>
           <button id="logoutBtn" style="width: auto; padding: 0.5em 1em;">Logout</button>
         </div>
       </div>
     </header>
-    <div class="main-layout" style="">
+
+    <div class="main-layout">
+
+      <div class="createPanel" id="createPanel">
+        <div class="panel" id="create"> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus et ridiculus tortor feugiat hac venenatis vitae ullamcorper. Tellus cras at conubia urna pharetra etiam ac parturient.  </div>
+      </div>
+
       <div class="left-panel" id="detailsPanel">
-        <h2>Details <button class="wrapped" id="detailSectionBtn"><i class="fa-solid fa-angles-right"> </i> </button></h2>
+        <h2>Details <button class="wrapped" id="detailSectionBtn"></button></h2>
           <h2 id="detailHeaderName"></h2>
           <section id="details">
           </section>
           <div style="display: flex; align-items: center;align-content: space-around; ">
-              <button id="createBtn" class="button">Update</button>
+              <button id="updateBtn" class="button">Update</button>
               <button id="deleteBtn" class="delete-btn">Delete</button>
           </div>
       </div>
+
       <div class="center-panel" id="viewPanel">
         <h2 class="view">
             <label style="width: 100%; padding: 0 0.25em; margin-bottom: 0">
-                <input type="text" placeholder="Search">
+                <input id="searchBar" autocomplete="off" type="text" placeholder="Search">
             </label>
-            <button class="wrapped">+</button>
+            <button class="wrapped" id="newBtn">+</button>
         </h2>
-        <div id="treeContainer"></div>
+        <div class="treeContainer" id="treeContainer"></div>
       </div>
+
       <details class="right-panel">
           <summary>API responses will appear here...</summary>
           <p id="response"></p>
       </details>
+
     </div>
   </div>
 </div>
