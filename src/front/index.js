@@ -133,14 +133,16 @@ async function deleteObject(name) {
     }
 }
 
-async function getItem(id) {
+function populateObjectDetails (object){
+    detailsContainer.getElementsByTagName('detail')[0].innerHTML = '';
+}
+
+function populateItemDetails(Item){
 
 }
 
 
 // --- Event Listeners ---
-document.getElementById('fetchAllBtn').addEventListener('click', fetchAll);
-
 document.getElementById('createBtn').addEventListener('click', async () => {
     const name = document.getElementById('create-name').value;
     const itemData = {
@@ -158,32 +160,6 @@ document.getElementById('createBtn').addEventListener('click', async () => {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(itemData),
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        displayResult(await response.json());
-        fetchAll();
-    } catch (error) {
-        displayError(error);
-    }
-});
-
-document.getElementById('createObjBtn').addEventListener('click', async () => {
-    const name = document.getElementById('create-obj-name').value;
-    const objectData = {
-        Item: {},
-        Object: {
-            name: name,
-            description: document.getElementById('create-obj-description').value,
-            tags: document.getElementById('create-obj-tags').value.split(',').map(t => t.trim()).filter(Boolean),
-            container: document.getElementById('create-obj-container').value,
-        },
-    };
-    try {
-        const response = await fetch(`${API_BASE_URL}/object/${encodeURIComponent(name)}`, {
-            ...fetchOptions,
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(objectData),
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         displayResult(await response.json());
