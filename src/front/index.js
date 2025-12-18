@@ -2,7 +2,7 @@ import {drawTree} from "./modules/app.js";
 
 const API_BASE_URL = location.origin;
 const responseArea = document.getElementById('response');
-const detailsContainer = document.getElementById('detailsContainer');
+const detailsContainer = document.getElementById('detailsPanel');
 
 let fullDataObject = {};
 const fetchOptions = {credentials: 'same-origin'};
@@ -48,11 +48,29 @@ async function fetchAll() {
     }
 }
 
-function callback(selected) {
+async function callback(selected) {
     if (selected["ref"] != null) {
-        //TODO: get Item
-    }else{
-        //TODO: object
+        const response = await fetch(`${API_BASE_URL}/item/${selected["ref"]}`, {
+            ...fetchOptions,
+            method: 'GET',
+            headers: {'Accept': 'application/json'},
+        })
+        if (response.ok) {
+            populateDetails(await response.json());
+        }else{
+            displayError(response.status);
+        }
+    } else {
+        const response = await fetch(`${API_BASE_URL}/object/${selected["name"]}`, {
+            ...fetchOptions,
+            method: 'GET',
+            headers: {'Accept': 'application/json'},
+        });
+        if (response.ok){
+            populateDetails(await response.json());
+        }else{
+            displayError(response.status);
+        }
     }
 }
 
@@ -133,11 +151,20 @@ async function deleteObject(name) {
     }
 }
 
-function populateObjectDetails (object){
-    detailsContainer.getElementsByTagName('detail')[0].innerHTML = '';
-}
+function populateDetails (object){
+    if (!object) return;
+    detailsContainer.hidden = false;
+    const details = document.getElementById('details');
+    document.getElementById('detailHeaderName').innerText = object["name"];
 
-function populateItemDetails(Item){
+    details.innerHTML = '';
+
+    for (const key in object) {
+        const div = document.createElement('div');
+        div.classList.add('form-group');
+        div.innerHTML = `<label for="D-${key}">${key}:</label><input id="D-${key}" type="text" placeholder="${object[key]}">`
+        details.appendChild(div)
+    }
 
 }
 
@@ -175,3 +202,6 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     window.location.replace("./login.html");
 });
 
+document.getElementById('detailSectionBtn').addEventListener('click', () => {
+    document.getElementById("detailsPanel").setAttribute("hidden", "");
+})

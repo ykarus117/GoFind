@@ -7,6 +7,7 @@
   <link href="style.css" rel="stylesheet">
   <script type="module" src="./index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://kit.fontawesome.com/e419e050e4.js" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="page-container" id="pageContainer">
@@ -21,25 +22,14 @@
     </header>
     <div class="main-layout" style="">
       <div class="left-panel" id="detailsPanel">
-        <h2>Details</h2>
-          <section>
-              <h2 id="detailHeaderName"></h2>
-              <div class="form-group"><label for="create-name">Name:</label><input id="create-name" type="text"></div>
-              <div class="form-group"><label for="create-quantity">Quantity:</label><input id="create-quantity"
-                                                                                           type="number"></div>
-              <div class="form-group"><label for="create-description">Description:</label><input id="create-description"
-                                                                                                 type="text">
-              </div>
-              <div class="form-group"><label for="create-tags">Tags (comma-separated):</label><input id="create-tags"
-                                                                                                     type="text">
-              </div>
-              <div class="form-group"><label for="create-object">Container Name:</label><input id="create-object"
-                                                                                               type="text"></div>
-              <div style="display: flex; align-items: center;align-content: space-around; ">
-                  <button id="createBtn" class="button">Update</button>
-                  <button id="deleteBtn" class="delete-btn">Delete</button>
-              </div>
+        <h2>Details <button class="wrapped" id="detailSectionBtn"><i class="fa-solid fa-angles-right"> </i> </button></h2>
+          <h2 id="detailHeaderName"></h2>
+          <section id="details">
           </section>
+          <div style="display: flex; align-items: center;align-content: space-around; ">
+              <button id="createBtn" class="button">Update</button>
+              <button id="deleteBtn" class="delete-btn">Delete</button>
+          </div>
       </div>
       <div class="center-panel" id="viewPanel">
         <h2 class="view">
