@@ -216,7 +216,7 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 	}()
 
 	res, err := tx.Query(
-		"SELECT Objects.name, Objects.id, I.owned_by, I.name, I.id FROM Objects LEFT JOIN Items I ON Objects.id = I.owned_by WHERE Objects.ownedBy_user = ? ORDER BY Objects.id",
+		"SELECT Objects.name, Objects.id, Objects.owner_id, I.name, I.id FROM Objects LEFT JOIN Items I ON Objects.id = I.owned_by WHERE Objects.ownedBy_user = ? ORDER BY Objects.id",
 		userID)
 
 	if err != nil {
@@ -227,7 +227,7 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 	var itemName sql.NullString
 	var objID int
 	var objOwner, itemID sql.NullInt64
-	var temp int
+	temp := -1
 	root := view
 
 	for res.Next() {
@@ -235,6 +235,16 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		if temp == -1 {
+			temp = objID
+			next := &ViewObject{
+				Name:     objName,
+				Children: make([]any, 0),
+			}
+			view = next
+		}
+
 		if temp != objID {
 			temp = objID
 			next := &ViewObject{
@@ -247,14 +257,15 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 				view.Children = append(view.Children, next)
 			}
 			view = next
-		} else {
-			if itemName.Valid {
-				view.Children = append(view.Children, &ViewItem{
-					Name: itemName.String,
-					Ref:  int(itemID.Int64),
-				})
-			}
 		}
+
+		if itemName.Valid {
+			view.Children = append(view.Children, &ViewItem{
+				Name: itemName.String,
+				Ref:  int(itemID.Int64),
+			})
+		}
+
 	}
 	return root, nil
 }
