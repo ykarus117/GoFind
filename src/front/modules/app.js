@@ -135,7 +135,9 @@ export function drawTree(data, callback) {
                     d.children = d.children ? null : d._children;
                     update(event, d);
                 }
-                callback(d.data)
+                if ((!d._children || d.children) || (d.data["ref"] !== undefined)) {
+                    callback(d.data)
+                }
             })
             .on('mouseover', function(event, d) {
                 d3.select(this).select('text')
@@ -152,7 +154,7 @@ export function drawTree(data, callback) {
             .filter((d) => d.depth > 0)
             .append("circle")
             .attr("r", (d) => (d._children ? 3.5 : 2.5))
-            .attr("fill", (d) => (!d.data["ref"] ? "#0096FF" : "rgba(39,217,11,0.85)"))
+            .attr("fill", (d) => ("ref" in d.data ? "rgba(39,217,11,0.85)" : "#0096FF"))
             .attr("stroke-width", 10);
 
         nodeEnter
