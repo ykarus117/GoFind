@@ -236,16 +236,7 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 			return nil, err
 		}
 
-		if temp == -1 {
-			temp = objID
-			next := &ViewObject{
-				Name:     objName,
-				Children: make([]any, 0),
-			}
-			view = next
-		}
-
-		if temp != objID {
+		if temp != objID || temp < 0 {
 			temp = objID
 			next := &ViewObject{
 				Name:     objName,
@@ -265,8 +256,29 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 				Ref:  int(itemID.Int64),
 			})
 		}
-
 	}
+
+	res, err = tx.Query("SELECT name, id FROM ITEMS WHERE ownedBy_user = ? AND owned_by IS NULL", userID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return root, nil
+		}
+		return nil, err
+	}
+
+	for res.Next() {
+		err = res.Scan(&itemName, &itemID)
+		if err != nil {
+			return nil, err
+		}
+
+		root.Children = append(root.Children, &ViewItem{
+			Name: itemName.String,
+			Ref:  int(itemID.Int64),
+		})
+	}
+
 	return root, nil
 }
 
