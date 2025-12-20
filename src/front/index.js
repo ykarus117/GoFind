@@ -4,7 +4,7 @@ const API_BASE_URL = location.origin;
 const responseArea = document.getElementById('response');
 const detailsContainer = document.getElementById('detailsPanel');
 const createPanel = document.getElementById('createPanel');
-
+const itemPanel = document.getElementById('itemsPanel');
 
 let fullDataObject = {};
 const fetchOptions = {credentials: 'same-origin'};
@@ -76,19 +76,37 @@ async function callback(selected) {
     }
 }
 
+
+
 function populateDetails (object){
     if (!object) return;
     detailsContainer.hidden = false;
     const details = document.getElementById('details');
     document.getElementById('detailHeaderName').innerText = object["name"];
 
+    itemPanel.innerHTML = '';
     details.innerHTML = '';
 
     for (const key in object) {
-        const div = document.createElement('div');
-        div.classList.add('form-group');
-        div.innerHTML = `<label for="D-${key}">${key}:</label><input id="D-${key}" type="text" placeholder="${object[key]}">`
-        details.appendChild(div)
+        if (Array.isArray(object[key])) {
+            for (const key2 in object[key]) {
+                const p = document.createElement('details')
+                const summary = document.createElement('summary');
+                summary.append(object[key][key2]["name"]);
+
+                for (const element in object[key][key2]) {
+                    p.innerHTML += `<label for="D-${element}">${element}:</label><input id="D-${element}" type="text" placeholder="${object[key][key2][element]}">`
+                }
+
+                p.appendChild(summary);
+                itemPanel.appendChild(p);
+            }
+        }else{
+            const div = document.createElement('div');
+            div.classList.add('form-group');
+            div.innerHTML = `<label for="D-${key}">${key}:</label><input id="D-${key}" type="text" placeholder="${object[key]}">`
+            details.appendChild(div)
+        }
     }
 
 }
