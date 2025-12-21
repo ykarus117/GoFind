@@ -11,7 +11,7 @@ const gridDotSize= 2;
 const gridColor= '#e7e7e7';
 const cx= width * 0.5;
 const cy= height * 0.5;
-const radius= Math.min(width, height) / 2 - 100;
+const radius= Math.min(width, height) / 2 - 20;
 
 function updateGrid(svg, zoomEvent) {
     svg.select('#dot-pattern')
@@ -32,7 +32,7 @@ export function drawTree(data, callback) {
     const tree = d3
         .tree()
         .size([2 * Math.PI, radius])
-        .separation((a, b) => (a.parent == b.parent ? 10 : 15) / a.depth);
+        .separation((a, b) => (a.parent === b.parent ? 0.25 : 2) / a.depth);
 
     // Sort the tree and apply the layout.
     const root = d3
@@ -80,8 +80,8 @@ export function drawTree(data, callback) {
         .append("g")
         .attr("fill", "none")
         .attr("stroke", "#2e6fde")
-        .attr("stroke-opacity", 0.55)
-        .attr("stroke-width", 1.3);
+        .attr("stroke-opacity", 0.75)
+        .attr("stroke-width",2.5);
 
     // Append nodes.
     const gNode = content
@@ -95,7 +95,7 @@ export function drawTree(data, callback) {
 
         // Dynamically adjust the radius based on the max depth of visible nodes
         const maxVisibleDepth = d3.max(nodes, d => d.depth) || 1;
-        tree.size([2 * Math.PI, maxVisibleDepth * 90]); // Adjust 100 to control spacing
+        tree.size([2 * Math.PI, maxVisibleDepth * 150]); // Adjust 100 to control spacing
 
         tree(root);
 
@@ -152,14 +152,26 @@ export function drawTree(data, callback) {
 
         nodeEnter
             .filter((d) => d.depth > 0)
+            .filter((d) => d.data["ref"] !== undefined)
             .append("circle")
-            .attr("r", (d) => (d._children ? 3.5 : 2.5))
-            .attr("fill", (d) => ("ref" in d.data ? "rgba(39,217,11,0.85)" : "#0096FF"))
+            .attr("r", 3.5)
+            .attr("fill", "rgba(39,217,11,0.85)")
             .attr("stroke-width", 10);
+
+        nodeEnter
+            .filter((d)=> d.data["ref"] === undefined)
+            .filter((d) => d.depth > 0)
+            .append("rect")
+            .attr("width", 10)
+            .attr("height", 10)
+            .attr("x", -5)
+            .attr("y", -5)
+            .attr("fill", "rgb(0,121,202)")
 
         nodeEnter
             .filter((d) => d.depth > 0)
             .append("text")
+            .attr("font-size",20)
             .attr("dy", "0.1em")
             //start and end exchange after half a circle
             .attr("text-anchor", (d) => (d.x < Math.PI ? "start" : "end"))
@@ -173,7 +185,7 @@ export function drawTree(data, callback) {
             .text((d) => d.data.name)
             .attr("fill", "var(--text-color)")
             .attr("stroke-linejoin", "round")
-            .attr("stroke-width", 1)
+            .attr("stroke-width", 2.5)
             .attr("stroke", "black")
             .attr("paint-order", "stroke");
 
