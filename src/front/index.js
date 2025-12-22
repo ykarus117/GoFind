@@ -46,6 +46,7 @@ async function fetchAll() {
         const data = await response.json();
         displayResult(data);
         fullDataObject = data
+
         document.getElementById('treeContainer').append(drawTree(data, callback));
     }
 }
@@ -75,7 +76,6 @@ async function callback(selected) {
         }
     }
 }
-
 
 
 function populateDetails (object){
@@ -222,12 +222,13 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 });
 
 document.getElementById('detailSectionBtn').addEventListener('click', () => {
-    document.getElementById("detailsPanel").setAttribute("hidden", "");
+    detailsContainer.classList.add('fade-out');
 })
 
 document.getElementById('newBtn').addEventListener('click', () => {
-    console.log("here");
     createPanel.style.visibility = "visible";
 })
 
-document.getElementById('searchBar').addEventListener('keyup', () => {})
+document.getElementById('closePanel').addEventListener('click', () => {
+    createPanel.style.visibility = "hidden";
+})

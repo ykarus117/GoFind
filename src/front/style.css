@@ -86,7 +86,7 @@ label {
     color: #bbb;
 }
 
-input, button {
+input {
     width: 100%;
     padding: 0.75em;
     box-sizing: border-box;
@@ -112,8 +112,11 @@ input, button {
 }
 
 button {
-    max-width: 90%;
+    max-width: 100%;
+    padding: 0.75em;
     margin: 0.25em;
+    border-radius: 4px;
+    color: var(--text-color);
     cursor: pointer;
     background: var(--primary-color);
     font-weight: bold;
@@ -121,13 +124,28 @@ button {
 }
 
 button.wrapped {
-    max-width: max-content;
+    max-width: fit-content;
+}
+
+button.login {
+    width: 100%;
+    margin: 1em;
+}
+
+button.register {
+    width: 100%;
+    margin: 1em;
+    background: forestgreen;
+    border-color: rgba(34, 139, 34, 0.8);
+}
+
+button.register:hover {
+    background: green;
 }
 
 button:hover {
     background: var(--primary-hover);
 }
-
 
 button.delete-btn {
     background: var(--danger-color);
@@ -331,4 +349,34 @@ details summary {
     mask-repeat: no-repeat;
     -webkit-mask-size: 100% 100%;
     mask-size: 100% 100%;
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+        visibility: visible;
+    }
+    to {
+        opacity: 0;
+        visibility: collapse;
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        visibility: collapse;
+    }
+    to {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+div.fade-out{
+    animation: fade-out 0.5s ease-out forwards;
+}
+
+div.fade-in{
+    animation: fade-in 0.5s ease-in forwards;
 }
