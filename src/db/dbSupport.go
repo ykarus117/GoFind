@@ -19,11 +19,6 @@ func TestInit() (*Database, error) {
 		Log:             log.Default(),
 	}
 
-	testingFolder := os.Getenv("TEST_FOLDER")
-	if testingFolder == "" {
-		panic("Missing TEST_FOLDER environment variable")
-	}
-
 	database := NewDatabase(options)
 
 	err := database.Connect()
@@ -31,10 +26,12 @@ func TestInit() (*Database, error) {
 		return nil, err
 	}
 
-	file, err := os.Open(testingFolder + "schema.sql")
+	file, err := os.Open("schema.sql")
 	if err != nil {
 		return nil, err
 	}
+
+	defer file.Close()
 
 	if schema, err := io.ReadAll(file); err == nil {
 		sql := string(schema)
@@ -46,10 +43,11 @@ func TestInit() (*Database, error) {
 		return nil, err
 	}
 
-	insert, err := os.Open(testingFolder + "testState.sql")
+	insert, err := os.Open("testState.sql")
 	if err != nil {
 		return nil, err
 	}
+	defer insert.Close()
 
 	ins, err := io.ReadAll(insert)
 	if err != nil {
