@@ -1,6 +1,8 @@
 [Unit]
     Description=GoFind Service
 [Service]
+    User=gofind_user
+    Group=gofind_user
     ExecStart=/usr/local/bin/GoFind/GoFind
     Restart=always
     WorkingDirectory=/usr/local/bin/GoFind
