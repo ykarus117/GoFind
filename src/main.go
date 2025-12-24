@@ -11,12 +11,16 @@ import (
 )
 
 func main() {
-	err := os.Setenv("TEST_FOLDER", "./testingDatabase")
-	if err != nil {
-		panic(err)
+	var databasePath string
+
+	if res, ok := os.LookupEnv("DB_PATH"); ok {
+		databasePath = res
+	} else {
+		databasePath = "./GoFind.db"
 	}
+
 	options := db.Options{
-		Url:             "./testingDatabase/testingDatabase.db",
+		Url:             databasePath,
 		Test:            false,
 		MaxOpenConn:     100,
 		MaxIdleConn:     100,
@@ -25,7 +29,7 @@ func main() {
 	}
 
 	database := db.NewDatabase(options)
-	err = database.Connect()
+	err := database.Connect()
 	if err != nil {
 		panic(err)
 	}
