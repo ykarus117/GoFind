@@ -1,31 +1,41 @@
 NAME = GoFind
-PATH = /usr/local/bin/$(NAME)
-BIN = bin/
+INSTPATH = /usr/local/bin/
+BIN = ./bin
 BUILD = go build -tags "sqlite_foreign_keys" -o
-.PHONY: prepare uninstall
+WINDOWS = GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc
+LINUX = GOOS=linux GOARCH=amd64 CGO_ENABLED=1
+ARM64 = GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=arm-linux-gnueabihf-gcc CXX=0
 
-cc_build:
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 $(BUILD) $(BIN)/$(NAME)_windows_x64 src/main.go
-	GOOS=linux   GOARCH=amd64 CGO_ENABLED=1 $(BUILD) $(BIN)/$(NAME)_linux_x64 src/main.go
-	GOOS=linux   GOARCH=arm64 CGO_ENABLED=1  $(BUILD) $(BIN)/$(NAME)_linux_arm64 src/main.go
-	GOOS=windows GOARCH=arm64 CGO_ENABLED=1  $(BUILD) $(BIN)/$(NAME)_windows_arm64 src/main.go
+.PHONY: prepare uninstall install cleanup cc_build
 
 build:
-	CGO_ENABLED=1 $(BUILD) /usr/local/bin/$(NAME) src/main.go
+	CGO_ENABLED=1 $(BUILD) $(BIN)/$(NAME) src/main.go
 
-prepare:
-	mkdir $(PATH)
-	mkdir $(PATH)/front
-	cp src/front/* $(PATH)/front -r
+cc_build:
+	$(WINDOWS) $(BUILD) $(BIN)/$(NAME)_windows_x64 src/main.go
+	$(LINUX) $(BUILD) $(BIN)/$(NAME)_linux_x64 src/main.go
+	$(ARM64) $(BUILD) $(BIN)/$(NAME)_linux_arm64 src/main.go
+
+cleanup:
+	rm -rf bin/
 
 uninstall:
-	service gofind stop
-	service gofind disable
+	systemctl stop gofind
+	systemctl disable gofind
 	rm /etc/systemd/system/gofind.service
-	rm -rf $(PATH)
-
-install: build | prepare
-	cp src/systemd/gofind.service /etc/systemd/system/gofind.service
+	rm -rf $(INSTPATH)
 	systemctl daemon-reload
-	service gofind enable
-	service gofind start
+
+install: build
+	@cp src/systemd/gofind.service /etc/systemd/system/gofind.service
+	@mkdir -p $(INSTPATH)/$(NAME)/front
+	@cp $(BIN)/$(NAME) $(INSTPATH)/$(NAME)
+	@cp ./front $(INSTPATH)/$(NAME) -r
+	@systemctl daemon-reload
+	@systemctl enable gofind
+	@systemctl start gofind
+	@rm -rf $(BIN)
+	@echo ================================
+	@echo Installed $(NAME) to $(INSTPATH)/$(NAME)
+	@echo Run 'systemctl start|stop|restart|status gofind' to manage the service
+	@echo Access the web interface at http://localhost:8080
