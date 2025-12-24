@@ -1,0 +1,8 @@
+[Unit]
+    Description=GoFind Service
+[Service]
+    ExecStart=/usr/local/bin/GoFind/GoFind
+    Restart=always
+    WorkingDirectory=/usr/local/bin/GoFind
+[Install]
+    WantedBy=multi-user.target

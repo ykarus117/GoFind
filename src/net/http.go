@@ -284,10 +284,10 @@ func (s *Server) objectOp(w http.ResponseWriter, r *http.Request) {
 func (s *Server) serveFront(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		http.ServeFile(w, r, "./src/front/login.html")
+		http.ServeFile(w, r, "./front/login.html")
 		return
 	}
-	http.FileServer(http.Dir("./src/front")).ServeHTTP(w, r)
+	http.FileServer(http.Dir("./front")).ServeHTTP(w, r)
 }
 
 func (s *Server) view(w http.ResponseWriter, r *http.Request) {
