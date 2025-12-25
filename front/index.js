@@ -10,6 +10,10 @@ let fullDataObject = {};
 const fetchOptions = {credentials: 'same-origin'};
 
 window.onload = () => {
+    if (!localStorage.getItem("username")) {
+        window.location.replace("./login.html");
+        return;
+    }
     fetchAll();
 }
 
@@ -77,10 +81,13 @@ async function callback(selected) {
     }
 }
 
-
 function populateDetails (object){
     if (!object) return;
-    detailsContainer.hidden = false;
+
+    if (detailsContainer.classList.contains('fade-out')){
+        detailsContainer.classList.remove('fade-out');
+        detailsContainer.classList.add('fade-in');
+    }
     const details = document.getElementById('details');
     document.getElementById('detailHeaderName').innerText = object["name"];
 
@@ -222,13 +229,17 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 });
 
 document.getElementById('detailSectionBtn').addEventListener('click', () => {
+    detailsContainer.classList.remove('fade-in');
     detailsContainer.classList.add('fade-out');
 })
 
 document.getElementById('newBtn').addEventListener('click', () => {
-    createPanel.style.visibility = "visible";
+    createPanel.classList.remove('fade-out');
+    createPanel.classList.add('fade-in');
 })
 
 document.getElementById('closePanel').addEventListener('click', () => {
-    createPanel.style.visibility = "hidden";
+    createPanel.classList.remove('fade-in');
+    createPanel.classList.add('fade-out');
+
 })
