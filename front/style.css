@@ -11,6 +11,7 @@
     --card-bg: #3a3a3a;
     --card-hover: #4a4a4a;
     --code-bg: #1e1e1e;
+    --link-color: #7c7c7c;
 }
 
 body {
@@ -49,9 +50,10 @@ h2.view {
 
 .main-layout {
     display: flex;
+    height: 100%;
+    border-bottom: 1px solid var(--border-color);
     flex: 1;
     overflow: hidden;
-    height: 100%;
 }
 
 .left-panel {
@@ -62,9 +64,10 @@ h2.view {
 }
 
 .center-panel {
+    display: flex;
+    flex-direction: column;
     flex: 1;
     padding: 0.5em;
-    overflow-y: clip;
 }
 
 .right-panel {
@@ -103,8 +106,8 @@ input.search {
 
 .treeContainer {
     display: block;
+    flex: 1;
     border-radius: 8px;
-    height: 85%;
     margin: 5px;
     border: 1px solid var(--border-color);
     overflow: hidden;
@@ -112,7 +115,6 @@ input.search {
 
 .treeContainer .tree {
     width: 100%;
-    height: auto;
     color: var(--text-color);
 }
 
@@ -136,6 +138,10 @@ button.close {
     max-width: fit-content;
     margin: 0;
     align-self: flex-end;
+}
+
+button.close:hover{
+    filter: invert(60);
 }
 
 button.login {
@@ -255,7 +261,8 @@ button.delete-btn:hover {
     display: flex;
     flex-direction: column;
     overflow: scroll;
-    max-width: 33%;
+    max-width: 50%;
+    min-width: 20%;
     height: 50%;
     backdrop-filter: none;
     border-radius: 8px;
@@ -283,6 +290,11 @@ details summary {
     color: #ddd;
     white-space: normal;
     word-wrap: break-word;
+}
+
+.footer{
+    display: block;
+    color: var(--link-color);
 }
 
 .json-key {

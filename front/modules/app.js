@@ -1,5 +1,5 @@
 // Compute dynamic sizes (with sensible minimums)
-const containerId = 'treeContainer';
+const containerId = 'viewPanel';
 const container = document.getElementById(containerId);
 const rect = container ? container.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
 
