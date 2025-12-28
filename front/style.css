@@ -114,7 +114,6 @@ input.search {
 }
 
 .treeContainer .tree {
-    width: 100%;
     color: var(--text-color);
 }
 
@@ -263,7 +262,7 @@ button.delete-btn:hover {
     overflow: scroll;
     max-width: 50%;
     min-width: 20%;
-    height: 50%;
+    max-height: 75%;
     backdrop-filter: none;
     border-radius: 8px;
     padding: 1em 2em;
