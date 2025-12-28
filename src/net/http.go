@@ -61,17 +61,17 @@ func parseRequest(r *http.Request) (*request, error) {
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
-	if cookie, err := r.Cookie("sessionID"); err == nil {
-		if ok, _ := s.auth.LoggedUserCheck(cookie.Value); ok {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-	}
-
 	err := r.ParseMultipartForm(32 << 20)
 	if err != nil {
+		if cookie, err := r.Cookie("sessionCookie"); err == nil {
+			if ok, _ := s.auth.LoggedUserCheck(cookie.Value); ok {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		w.WriteHeader(http.StatusBadRequest)
-		log.Default().Println(err)
 		return
 	}
 
@@ -119,6 +119,11 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	username := r.PathValue("username")
+	if username == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	cookie, err := r.Cookie("sessionCookie")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -132,6 +137,11 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:   "sessionCookie",
+		MaxAge: -1,
+	})
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -294,6 +304,10 @@ func (s *Server) view(w http.ResponseWriter, r *http.Request) {
 	req, err := s.requestValidation(r)
 
 	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -391,7 +405,8 @@ func (s *Server) requestValidation(r *http.Request) (*request, error) {
 
 	ok, id := s.auth.LoggedUserCheck(cookie.Value)
 	if !ok {
-		return nil, errors.New("invalid cookie")
+		//TODO: write a different error
+		return nil, http.ErrNoCookie
 	}
 
 	req, err := parseRequest(r)
@@ -401,8 +416,8 @@ func (s *Server) requestValidation(r *http.Request) (*request, error) {
 
 	req.userID = id
 
-	if req.Item == nil || req.Object == nil {
-		if r.Method != "GET" && r.Method != "DELETE" {
+	if r.Method != "GET" && r.Method != "DELETE" {
+		if req.Item == nil && req.Object == nil {
 			return nil, errors.New("invalid request")
 		}
 	}

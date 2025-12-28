@@ -28,14 +28,14 @@
       <div class="createPanel" id="createPanel">
         <div class="panel" id="create">
           <button id="closePanel" class="close"><i class="fi-rr-cross"></i></button>
-          <p>Create new</p>
-          <div class="form-group" id="createForm">
-            <label class="form-label" for="I-name"><input id="I-name" placeholder="Name" type="text"></label>
-            <label class="form-label" for="I-quantity"><input id="I-quantity" placeholder="0" type="number"></label>
-            <label class="form-lable" for="I-description"><input id="I-description" placeholder="Description" type="text"> </label>
-            <label class="form-label" for="I-container"><input id="I-container" placeholder="Contained in" type="text"></label>
-            <label class="form-label" for="I-tag"><input id="I-tag" placeholder="Comma separated list of tags" type="text"></label>
-          </div >
+          <p>Create</p>
+          <form class="form-group" id="createForm">
+            <label class="form-label" for="createForm-name">Name:<input id="createForm-name" placeholder="Item/Object name." type="text"></label>
+            <label class="form-label" for="createForm-quantity">Quantity:<input id="createForm-quantity" placeholder="Will be omitted for objects." type="number"></label>
+            <label class="form-lable" for="createForm-description">Description:<input id="createForm-description" placeholder="Can be empty." type="text"> </label>
+            <label class="form-label" for="createForm-container">Container:<input id="createForm-container" placeholder="Can be empty." type="text"></label>
+            <label class="form-label" for="createForm-tags">Tags:<input id="createForm-tags" placeholder="Tag1, Tag2, Tag3." type="text"></label>
+          </form>
             <div style="display: flex; align-items: baseline; justify-content: space-around;" >
               <button id="createObjectBtn"> Object </button>
               <button id="createItemBtn"> Item </button>
@@ -79,6 +79,5 @@
     </footer>
   </div>
 </div>
-
 </body>
 </html>

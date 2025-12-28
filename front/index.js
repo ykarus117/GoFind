@@ -9,12 +9,15 @@ const itemPanel = document.getElementById('itemsPanel');
 let fullDataObject = {};
 const fetchOptions = {credentials: 'same-origin'};
 
-window.onload = () => {
-    if (!localStorage.getItem("username")) {
+window.onload = async () => {
+    const response = await fetch(`${API_BASE_URL}/items`, fetchOptions);
+    if (!response.ok) {
         window.location.replace("./login.html");
-        return;
     }
-    fetchAll();
+    const data = await response.json();
+    displayResult(data);
+    fullDataObject = data
+    document.getElementById('treeContainer').append(drawTree(data, callback));
 }
 
 function displayResult(data) {
@@ -43,16 +46,7 @@ function displayError(error) {
 }
 
 async function fetchAll() {
-    const response = await fetch(`${API_BASE_URL}/items`, fetchOptions);
-    if (!response.ok) {
-        responseArea.innerHTML = `<span style="color: darkred;">Error: HTTP error! status: ${response.status}</span>`;
-    } else {
-        const data = await response.json();
-        displayResult(data);
-        fullDataObject = data
 
-        document.getElementById('treeContainer').append(drawTree(data, callback));
-    }
 }
 
 async function callback(selected) {
@@ -116,6 +110,35 @@ function populateDetails (object){
         }
     }
 
+}
+
+function buildItem(form){
+    if(!form) return;
+    const inputs = form.elements
+    const formName = form.id
+    return {
+        Item: {
+            name: inputs[`${formName}-name`].value,
+            quantity: parseInt(inputs[`${formName}-quantity`].value, 10) || 1,
+            description: inputs[`${formName}-description`].value,
+            tags: inputs[`${formName}-tags`].value.split(',').map(t => t.trim()).filter(Boolean),
+            container: inputs[`${formName}-container`].value,
+        }, Object: {},
+    };
+}
+
+function buildObject(form) {
+    if(!form) return;
+    const inputs = form.elements
+    const formName = form.id
+    return {
+        Object: {
+            name: inputs[`${formName}-name`].value,
+            description: inputs[`${formName}-description`].value,
+            tags: inputs[`${formName}-tags`].value.split(',').map(t => t.trim()).filter(Boolean),
+            container: inputs[`${formName}-container`].value,
+        },
+    }
 }
 
 // --- API Call Functions ---
@@ -222,10 +245,14 @@ document.getElementById('updateBtn').addEventListener('click', async () => {
     }
 });
 
-document.getElementById('logoutBtn').addEventListener('click', () => {
-    fetch(`${API_BASE_URL}/logout/${localStorage.getItem("username")}`, {...fetchOptions, method: 'POST'});
-    localStorage.removeItem('username');
-    window.location.replace("./login.html");
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+    const response = await fetch(
+        `${API_BASE_URL}/logout/${localStorage.getItem("username")}`,
+        {...fetchOptions, method: 'POST'});
+    if (response.ok) {
+        localStorage.removeItem('username');
+        window.location.replace("./login.html");
+    }
 });
 
 document.getElementById('detailSectionBtn').addEventListener('click', () => {
@@ -238,8 +265,45 @@ document.getElementById('newBtn').addEventListener('click', () => {
     createPanel.classList.add('fade-in');
 })
 
+document.getElementById('createItemBtn').addEventListener('click', async () => {
+    const data = buildItem(document.getElementById('createForm'));
+    if (!data) {
+        return;
+    }
+    const response = fetch(`${API_BASE_URL}/item/0`, {
+        ...fetchOptions,
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data),
+    })
+    document.getElementById("statusBar").innerText = await response.status;
+})
+
+document.getElementById('createObjectBtn').addEventListener('click', async () => {
+    const data = buildObject(document.getElementById('createForm'));
+    if (!data) {
+        return;
+    }
+    console.log(JSON.stringify(data));
+    const response = fetch(`${API_BASE_URL}/object/0`, {
+        ...fetchOptions,
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data),
+    })
+    document.getElementById("statusBar").innerText = await response.status;
+})
+
 document.getElementById('closePanel').addEventListener('click', () => {
     createPanel.classList.remove('fade-in');
     createPanel.classList.add('fade-out');
+})
 
+document.getElementById('deleteBtn').addEventListener('click', () => {
+    const name = document.getElementById('D-name').placeholder;
+    if (!document.getElementById('D-quantity')) {
+        deleteObject(name);
+    }else{
+        deleteItem(document.getElementById('D-id').placeholder);
+    }
 })
