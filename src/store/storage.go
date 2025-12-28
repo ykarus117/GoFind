@@ -377,7 +377,7 @@ func (s *Store) AddItem(item *Item, userID int) error {
 
 	if item.Container != "" {
 		var id string
-		res := tx.QueryRow("SELECT id FROM Objects WHERE id = ? AND ownedBy_user = ? ",
+		res := tx.QueryRow("SELECT id FROM Objects WHERE name = ? AND ownedBy_user = ? ",
 			item.Container, userID)
 
 		err = res.Scan(&id)
