@@ -10,7 +10,7 @@ import (
 )
 
 //go:embed schema.sql
-var schema string
+var embeddedSchema string
 
 type Database struct {
 	url         string
@@ -34,11 +34,11 @@ func NewDatabase(Options Options) *Database {
 	// In-memory database for testing, using a :memory: database will incur in errors as transactions open with .Begin() seem to open a new connection
 	// and sqlite supports only one connection per :memory: database
 	if Options.Test {
-		url = Options.Url + "?cache=shared&mode=memory"
+		url = "file:" + Options.Url + "?cache=shared&mode=memory"
 	} else {
 		// If no database exist create one
 		if _, err := os.Stat(Options.Url); err != nil {
-			file, err := os.OpenFile("GoFind.db", os.O_CREATE, 0774)
+			file, err := os.OpenFile("GoFind.db", os.O_CREATE, 0755)
 			if err != nil {
 				panic(err)
 			}
@@ -70,11 +70,13 @@ func (db *Database) Connect() error {
 	}
 
 	res := d.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='Users' ")
+
 	var tmp string
+
+	//Database has no schema, create it
 	if err := res.Scan(&tmp); err != nil {
-		db.log.Println(err)
 		db.log.Println("Setting up database schema...")
-		lines := strings.Split(schema, ";")
+		lines := strings.Split(embeddedSchema, ";")
 		for _, line := range lines {
 			_, err = d.Exec(line)
 			if err != nil {
@@ -82,6 +84,7 @@ func (db *Database) Connect() error {
 			}
 		}
 	}
+
 	db.DB = d
 	db.DB.SetMaxIdleConns(db.maxIdleConn)
 	db.DB.SetMaxOpenConns(db.maxOpenConn)
