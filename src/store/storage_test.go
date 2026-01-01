@@ -3,7 +3,6 @@ package Store
 import (
 	"GoSafe/src/db"
 	"context"
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -12,10 +11,6 @@ import (
 )
 
 func TestStore_AddItem(t *testing.T) {
-	err := os.Setenv("TEST_FOLDER", "../../testingDatabase/")
-	if err != nil {
-		t.Fatal(err)
-	}
 	testDB, err := db.TestInit()
 	if err != nil {
 		panic(err)
@@ -100,10 +95,6 @@ func TestStore_AddItem(t *testing.T) {
 }
 
 func TestStore_AddObject(t *testing.T) {
-	err := os.Setenv("TEST_FOLDER", "../../testingDatabase/")
-	if err != nil {
-		t.Fatal(err)
-	}
 	testDB, err := db.TestInit()
 	if err != nil {
 		panic(err)
@@ -183,10 +174,6 @@ func TestStore_AddObject(t *testing.T) {
 }
 
 func TestStore_DeleteItem(t *testing.T) {
-	err := os.Setenv("TEST_FOLDER", "../../testingDatabase/")
-	if err != nil {
-		t.Fatal(err)
-	}
 	type fields struct {
 		database *db.Database
 		ctx      context.Context
@@ -217,10 +204,6 @@ func TestStore_DeleteItem(t *testing.T) {
 }
 
 func TestStore_DeleteObject(t *testing.T) {
-	err := os.Setenv("TEST_FOLDER", "../../testingDatabase/")
-	if err != nil {
-		t.Fatal(err)
-	}
 	type fields struct {
 		database *db.Database
 		ctx      context.Context
@@ -251,10 +234,6 @@ func TestStore_DeleteObject(t *testing.T) {
 }
 
 func TestStore_GetItem(t *testing.T) {
-	err := os.Setenv("TEST_FOLDER", "../../testingDatabase/")
-	if err != nil {
-		t.Fatal(err)
-	}
 	testDB, err := db.TestInit()
 	if err != nil {
 		t.Errorf("%s", err)
@@ -310,10 +289,6 @@ func TestStore_GetItem(t *testing.T) {
 }
 
 func TestStore_GetObject(t *testing.T) {
-	err := os.Setenv("TEST_FOLDER", "../../testingDatabase/")
-	if err != nil {
-		t.Fatal(err)
-	}
 	testDB, err := db.TestInit()
 	if err != nil {
 		t.Fatal(err)
@@ -421,10 +396,6 @@ func TestStore_GetObject(t *testing.T) {
 }
 
 func TestStore_GetView(t *testing.T) {
-	err := os.Setenv("TEST_FOLDER", "../../testingDatabase/")
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	testDB, err := db.TestInit()
 	if err != nil {
@@ -474,10 +445,6 @@ func TestStore_GetView(t *testing.T) {
 }
 
 func TestStore_UpdateItem(t *testing.T) {
-	err := os.Setenv("TEST_FOLDER", "../../testingDatabase/")
-	if err != nil {
-		t.Fatal(err)
-	}
 	testDB, err := db.TestInit()
 	if err != nil {
 		t.Fatal(err)
@@ -552,10 +519,6 @@ func TestStore_UpdateItem(t *testing.T) {
 }
 
 func TestStore_UpdateObject(t *testing.T) {
-	err := os.Setenv("TEST_FOLDER", "../../testingDatabase/")
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	testDB, err := db.TestInit()
 	if err != nil {

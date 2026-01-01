@@ -2,11 +2,13 @@ package db
 
 import (
 	cryptorand "crypto/rand"
-	"io"
+	_ "embed"
 	"log"
-	"os"
 	"strings"
 )
+
+//go:embed testState.sql
+var testState string
 
 // TestInit Spawns a populated in-memory database for testing purposes
 func TestInit() (*Database, error) {
@@ -28,18 +30,7 @@ func TestInit() (*Database, error) {
 		return nil, err
 	}
 
-	testState, err := os.Open("../db/testState.sql")
-	if err != nil {
-		return nil, err
-	}
-	defer testState.Close()
-
-	testStateString, err := io.ReadAll(testState)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, row := range strings.Split(string(testStateString), ";") {
+	for _, row := range strings.Split(string(testState), ";") {
 		_, err2 := database.DB.Exec(row)
 		if err2 != nil {
 			return nil, err2

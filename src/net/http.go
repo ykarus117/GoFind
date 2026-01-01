@@ -14,19 +14,6 @@ import (
 	"github.com/rs/cors"
 )
 
-type HttpServer interface {
-	login(http.ResponseWriter, *http.Request)
-	register(http.ResponseWriter, *http.Request)
-	logout(http.ResponseWriter, *http.Request)
-	serveFront(http.ResponseWriter, *http.Request)
-	Serve() error
-	requestValidation(r *http.Request) (*request, error)
-	itemOp(http.ResponseWriter, *http.Request)
-	objectOp(http.ResponseWriter, *http.Request)
-	view(http.ResponseWriter, *http.Request)
-	searchItem(http.ResponseWriter, *http.Request)
-}
-
 type Server struct {
 	ctx     context.Context
 	storage *Store.Store
@@ -61,7 +48,15 @@ func parseRequest(r *http.Request) (*request, error) {
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(32 << 20)
+	var err error
+
+	defer func() {
+		if err != nil {
+			log.Default().Println(err)
+		}
+	}()
+
+	err = r.ParseMultipartForm(32 << 20)
 	if err != nil {
 		if cookie, err := r.Cookie("sessionCookie"); err == nil {
 			if ok, _ := s.auth.LoggedUserCheck(cookie.Value); ok {
@@ -81,7 +76,6 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	cookie, err := s.auth.Login(username, password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
-		log.Default().Println(err)
 		return
 	}
 
@@ -118,6 +112,14 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	defer func() {
+		if err != nil {
+			log.Default().Println(err)
+		}
+	}()
+
 	username := r.PathValue("username")
 	if username == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -133,7 +135,6 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	err = s.auth.Logout(username, cookie.Value)
 
 	if err != nil {
-		log.Default().Println(err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -146,7 +147,16 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// itemOp http://<location>/item/{itemID} [GET | POST | PUT | DELETE]
 func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	defer func() {
+		if err != nil {
+			log.Default().Println(err)
+		}
+	}()
+
 	req, err := s.requestValidation(r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -167,7 +177,6 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusNotFound)
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
-
 			}
 			return
 		}
@@ -227,6 +236,7 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// objectOp http://<location>/object/{objectID} [GET | POST | PUT | DELETE]
 func (s *Server) objectOp(w http.ResponseWriter, r *http.Request) {
 	req, err := s.requestValidation(r)
 	if err != nil {
@@ -334,6 +344,7 @@ func (s *Server) view(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// TODO: dead code
 func (s *Server) searchItem(w http.ResponseWriter, r *http.Request) {
 	req, err := s.requestValidation(r)
 	if err != nil {
@@ -369,14 +380,14 @@ func (s *Server) searchItem(w http.ResponseWriter, r *http.Request) {
 	data, err := json.Marshal(res)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(data)
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-
 		return
 	}
 }
@@ -395,7 +406,7 @@ func (s *Server) Serve() error {
 	return http.ListenAndServe(":8080", handler)
 }
 
-// RequestValidation checks the correct parsing of the http body request and if the cookie is valid. req will be populated with a valid request or nil
+// requestValidation checks the correct parsing of the http body request and if the cookie is valid. req will be populated with a valid request or nil
 func (s *Server) requestValidation(r *http.Request) (*request, error) {
 	cookie, err := r.Cookie("sessionCookie")
 
