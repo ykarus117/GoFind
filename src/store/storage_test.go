@@ -385,8 +385,10 @@ func TestStore_GetObject(t *testing.T) {
 				return
 			}
 
-			tt.want.CreationDate = time.Now().UTC()
-			got.CreationDate = tt.want.CreationDate
+			if tt.want != nil {
+				tt.want.CreationDate = time.Now().UTC()
+				got.CreationDate = tt.want.CreationDate
+			}
 
 			if got != nil && !reflect.DeepEqual(*got, *tt.want) {
 				t.Errorf("GetObject() Got = %v \n Want = %v", got, tt.want)
