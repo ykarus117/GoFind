@@ -29,6 +29,8 @@ type session struct {
 	end      time.Time
 }
 
+const AuthCookie = "GoFind_SessionCookie"
+
 type Auth struct {
 	db          *sql.DB
 	loggedUsers map[string]session
@@ -152,10 +154,9 @@ func (a *Auth) Login(username string, password string) (*http.Cookie, error) {
 
 	a.lock.Unlock()
 
-	//TODO: export cookie name globally
 	cookie := &http.Cookie{
 		Value:    sessionID,
-		Name:     "sessionCookie",
+		Name:     AuthCookie,
 		HttpOnly: true,
 		Secure:   true,
 		Expires:  a.loggedUsers[username].end,

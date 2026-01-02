@@ -58,7 +58,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 	err = r.ParseMultipartForm(32 << 20)
 	if err != nil {
-		if cookie, err := r.Cookie("sessionCookie"); err == nil {
+		if cookie, err := r.Cookie(AuthCookie); err == nil {
 			if ok, _ := s.auth.LoggedUserCheck(cookie.Value); ok {
 				w.WriteHeader(http.StatusOK)
 				return
@@ -126,7 +126,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie, err := r.Cookie("sessionCookie")
+	cookie, err := r.Cookie(AuthCookie)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -140,7 +140,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:   "sessionCookie",
+		Name:   AuthCookie,
 		MaxAge: -1,
 	})
 
@@ -344,52 +344,8 @@ func (s *Server) view(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TODO: dead code
 func (s *Server) searchItem(w http.ResponseWriter, r *http.Request) {
-	req, err := s.requestValidation(r)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-
-		return
-	}
-	param, value := r.PathValue("parameter"), r.PathValue("value")
-	if param == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if value == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	res, err := s.storage.SearchItems(param, value, req.userID)
-	if err != nil {
-		if errors.Is(err, s.storage.NotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		if errors.Is(err, s.storage.FormatError) {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
-	}
-
-	data, err := json.Marshal(res)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(data)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	panic("Implement me")
 }
 
 func (s *Server) Serve() error {
@@ -408,8 +364,7 @@ func (s *Server) Serve() error {
 
 // requestValidation checks the correct parsing of the http body request and if the cookie is valid. req will be populated with a valid request or nil
 func (s *Server) requestValidation(r *http.Request) (*request, error) {
-	cookie, err := r.Cookie("sessionCookie")
-
+	cookie, err := r.Cookie(AuthCookie)
 	if err != nil {
 		return nil, err
 	}
