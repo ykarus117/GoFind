@@ -5,49 +5,26 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
+	"fmt"
 	"strings"
 
 	"github.com/mattn/go-sqlite3"
 )
 
 type store interface {
-	GetView(int) (map[string][]*Object, error)
+	GetView(int) (*ViewObject, error)
 
 	GetObject(string, int) (*Object, error)
 	GetItem(int, int) (*Item, error)
 
 	AddObject(*Object, int) error
 	AddItem(*Item, int) error
-	addBatchItems([]Item, int) error
 
 	UpdateObject(*Object, string, int) error
 	UpdateItem(*Item, int, int) error
 
 	DeleteObject(string, int) error
 	DeleteItem(int, int) error
-
-	SearchItems(string, string, int) (map[int]Item, error)
-}
-
-type InternalError struct {
-	message string
-}
-type FormatError struct {
-	message string
-}
-type NotFoundError struct {
-	message string
-}
-
-func (e *InternalError) Error() string {
-	return e.message
-}
-func (e *FormatError) Error() string {
-	return e.message
-}
-func (e *NotFoundError) Error() string {
-	return e.message
 }
 
 type Store struct {
@@ -72,15 +49,6 @@ func NewStore(db *db.Database, ctx context.Context) *Store {
 	return &Store{
 		database: db,
 		ctx:      ctx,
-		NotFound: &NotFoundError{
-			message: "request resource not found",
-		},
-		Internal: &InternalError{
-			message: "internal error",
-		},
-		FormatError: &FormatError{
-			message: "format error",
-		},
 	}
 }
 
@@ -186,6 +154,37 @@ func (s *Store) setObjectTags(tx *sql.Tx, tags []string, objectID int) error {
 	return nil
 }
 
+func (s *Store) addBatchItems(tx *sql.Tx, items []Item, userID int, ownerID int) error {
+	if items == nil {
+		return errors.New("items is nil")
+	}
+
+	stmt, err := tx.Prepare(
+		"INSERT INTO Items (name, quantity, description, owned_by, ownedBy_user) VALUES (?,?,?,?,?)")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	for _, item := range items {
+		res, err := stmt.Exec(item.Name, item.Quantity, item.Description, ownerID, userID)
+		if err != nil {
+			return err
+		}
+		if id, err := res.LastInsertId(); err != nil {
+			return err
+		} else {
+			item.Id = int(id)
+			err = s.setItemTags(tx, item.Tags, int(id))
+			if err != nil {
+				return s.Internal
+			}
+		}
+	}
+	return nil
+}
+
 func (s *Store) GetView(userID int) (*ViewObject, error) {
 	view := &ViewObject{
 		Name:     "root",
@@ -195,32 +194,22 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
 
 	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			log.Default().Println(err)
-			if tx != nil {
-				err := tx.Rollback()
-				if err != nil {
-					log.Default().Println(err)
-				}
-			}
-		} else {
-			err = tx.Commit()
-			if err != nil {
-				log.Default().Println(err)
-			}
+		return nil, &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("Begin transaction (user %v)", userID),
 		}
-	}()
+	}
 
 	res, err := tx.Query(
 		"SELECT Objects.name, Objects.id, Objects.owner_id, I.name, I.id FROM Objects LEFT JOIN Items I ON Objects.id = I.owned_by WHERE Objects.ownedBy_user = ? ORDER BY Objects.id",
 		userID)
 
 	if err != nil {
-		return nil, err
+		tx.Rollback()
+		return nil, &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("Main view select query (user: %v)", userID),
+		}
 	}
 
 	var objName string
@@ -233,7 +222,11 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 	for res.Next() {
 		err := res.Scan(&objName, &objID, &objOwner, &itemName, &itemID)
 		if err != nil {
-			return nil, err
+			tx.Rollback()
+			return nil, &InternalError{
+				Err:     err,
+				Message: fmt.Sprintf("Main view scan (user %v)", userID),
+			}
 		}
 
 		if temp != objID || temp < 0 {
@@ -261,6 +254,7 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 	res, err = tx.Query("SELECT name, id FROM ITEMS WHERE ownedBy_user = ? AND owned_by IS NULL", userID)
 
 	if err != nil {
+		tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
 			return root, nil
 		}
@@ -270,7 +264,11 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 	for res.Next() {
 		err = res.Scan(&itemName, &itemID)
 		if err != nil {
-			return nil, err
+			tx.Rollback()
+			return nil, &InternalError{
+				Err:     err,
+				Message: fmt.Sprintf("Loose item view scan (user: %v)", userID),
+			}
 		}
 
 		root.Children = append(root.Children, &ViewItem{
@@ -279,44 +277,45 @@ func (s *Store) GetView(userID int) (*ViewObject, error) {
 		})
 	}
 
+	tx.Commit()
 	return root, nil
 }
 
 func (s *Store) AddObject(obj *Object, userID int) error {
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
 	if err != nil {
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("AddObject transaction (user %v)", userID),
+		}
 	}
 
 	defer func() {
 		if err != nil {
-			log.Default().Println(err)
-			if tx != nil {
-				err := tx.Rollback()
-				if err != nil {
-					log.Default().Println(err)
-				}
-			}
-		} else {
-			err = tx.Commit()
-			if err != nil {
-				log.Default().Println(err)
-			}
+			tx.Rollback()
 		}
+		tx.Commit()
 	}()
 
 	if obj.Name == "" {
-		return s.Internal
+		return &FormatError{
+			Message: fmt.Sprintf("Name is required (user %v, object %v)", userID, obj),
+		}
 	}
 
 	res, err := tx.Query("SELECT id FROM Objects WHERE name = ? and ownedBy_user = ?", obj.Name, userID)
 
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("AddObject select query (user %v)", userID),
+		}
 	}
 
 	if res.Next() {
-		return s.FormatError
+		return &FormatError{
+			Message: fmt.Sprintf("Object already exists (user %v, object %v)", userID, obj.Name),
+		}
 	}
 
 	var owner sql.NullInt64
@@ -328,7 +327,10 @@ func (s *Store) AddObject(obj *Object, userID int) error {
 		row := tx.QueryRow("SELECT ID FROM Objects WHERE name = ? and ownedBy_user = ?", obj.Container, userID)
 		err := row.Scan(&owner.Int64)
 		if err != nil {
-			return s.FormatError
+			return &InternalError{
+				Err:     err,
+				Message: fmt.Sprintf("AddObject owner select query (user %v, object %v)", userID, obj),
+			}
 		}
 	}
 
@@ -336,41 +338,60 @@ func (s *Store) AddObject(obj *Object, userID int) error {
 		obj.Name, obj.Description, owner, userID)
 
 	if err != nil {
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("AddObject update query (user %v, object %v)", userID, obj),
+		}
 	}
 
 	objID, err := objRes.LastInsertId()
 
 	if err != nil {
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("AddObject new object id return query (user %v, object %v)", userID, obj),
+		}
 	}
 
 	err = s.setObjectTags(tx, obj.Tags, int(objID))
 
 	if err != nil {
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("AddObject set tags (user %v, object %v)", userID, obj),
+		}
 	}
 
 	if obj.Items != nil {
 		err = s.addBatchItems(tx, obj.Items, userID, int(objID))
 		if err != nil {
-			return s.Internal
+			return &InternalError{
+				Err:     err,
+				Message: fmt.Sprintf("AddObject add batch items (user %v object %v)", userID, obj),
+			}
 		}
 	}
 
 	return nil
 }
 
-// TODO: error handling sucks
 func (s *Store) AddItem(item *Item, userID int) error {
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
 	if err != nil {
 		return s.Internal
 	}
-	defer tx.Commit()
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+		tx.Commit()
+	}()
 
 	if item == nil {
-		return s.Internal
+		return &InternalError{
+			Message: "AddItem nil item",
+		}
 	}
 
 	var container sql.NullString
@@ -382,8 +403,10 @@ func (s *Store) AddItem(item *Item, userID int) error {
 
 		err = res.Scan(&id)
 		if err != nil {
-			log.Default().Println(err)
-			return s.Internal
+			return &InternalError{
+				Err:     err,
+				Message: fmt.Sprintf("AddItem select container id (user %v, item %v)", userID, item),
+			}
 		}
 		container = sql.NullString{
 			String: id,
@@ -400,21 +423,26 @@ func (s *Store) AddItem(item *Item, userID int) error {
 		item.Name, item.Quantity, item.Description, container, userID)
 
 	if err != nil {
-		_ = tx.Rollback()
-		log.Default().Println(err)
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("AddItem create (user %v, item %v)", userID, item),
+		}
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		log.Default().Println(err)
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("created item id retrieve (user %v, item %v)", userID, item),
+		}
 	}
 
 	err = s.setItemTags(tx, item.Tags, int(id))
 	if err != nil {
-		log.Default().Println(err)
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("AddItem set tags (user %v, item %v)", userID, item),
+		}
 	}
 
 	return nil
@@ -423,24 +451,17 @@ func (s *Store) AddItem(item *Item, userID int) error {
 func (s *Store) UpdateObject(object *Object, ObjectID string, userID int) error {
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
 	if err != nil {
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateObject transaction (user %v, object %v)", userID, ObjectID),
+		}
 	}
 
 	defer func() {
 		if err != nil {
-			log.Default().Println(err)
-			if tx != nil {
-				err := tx.Rollback()
-				if err != nil {
-					log.Default().Println(err)
-				}
-			}
-		} else {
-			err = tx.Commit()
-			if err != nil {
-				log.Default().Println(err)
-			}
+			tx.Rollback()
 		}
+		tx.Commit()
 	}()
 
 	var objID int
@@ -448,10 +469,15 @@ func (s *Store) UpdateObject(object *Object, ObjectID string, userID int) error 
 
 	if err := row.Scan(&objID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return s.FormatError
+			return &NotFoundError{
+				Err:     err,
+				Message: fmt.Sprintf("UpdateObject Requested object (user %v, object %v) not found", userID, ObjectID),
+			}
 		}
-		s.Internal.message = err.Error()
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateObject select query (user %v, object %v)", userID, ObjectID),
+		}
 	}
 
 	if object == nil {
@@ -468,10 +494,15 @@ func (s *Store) UpdateObject(object *Object, ObjectID string, userID int) error 
 		err := res.Scan(&container.Int64)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return s.NotFound
+				return &NotFoundError{
+					Err:     err,
+					Message: fmt.Sprintf("UpdateObject requested object container not found (user %v, object %v)", userID, object.Container),
+				}
 			}
-			s.Internal.message = err.Error()
-			return s.Internal
+			return &InternalError{
+				Err:     err,
+				Message: fmt.Sprintf("UpdateObject container select query (user %v, object %v)", userID, object),
+			}
 		}
 		container.Valid = true
 	} else {
@@ -483,8 +514,10 @@ func (s *Store) UpdateObject(object *Object, ObjectID string, userID int) error 
 
 	_, err = tx.Exec("DELETE FROM Items WHERE owned_by = ? AND ownedBy_user = ? ", objID, userID)
 	if err != nil {
-		s.Internal.message = err.Error()
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateObject delete objects' items (user %v, object %v)", userID, ObjectID),
+		}
 	}
 
 	_, err = tx.Exec(
@@ -493,28 +526,40 @@ func (s *Store) UpdateObject(object *Object, ObjectID string, userID int) error 
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return s.NotFound
+			return &NotFoundError{
+				Err:     err,
+				Message: fmt.Sprintf("UpdateObject (user %v, object %v)", userID, ObjectID),
+			}
 		}
-		s.Internal.message = err.Error()
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateObject update object (user %v, object %v)", userID, ObjectID),
+		}
 	}
 
 	if object.Items != nil {
 		if err := s.addBatchItems(tx, object.Items, userID, objID); err != nil {
-			return err
+			return &InternalError{
+				Err:     err,
+				Message: fmt.Sprintf("UpdateObject add batch items (user %v, object %v)", userID, object.Items),
+			}
 		}
 	}
 
 	_, err = tx.Exec("DELETE FROM tags_objects WHERE object_id = ?", objID)
 	if err != nil {
-		s.Internal.message = err.Error()
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateObject delete tags object (user %v, tags %v)", userID, object.Tags),
+		}
 	}
 
 	err = s.setObjectTags(tx, object.Tags, objID)
 	if err != nil {
-		s.Internal.message = err.Error()
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateObject set tags object (user %v, tags %v)", userID, object.Tags),
+		}
 	}
 	return nil
 }
@@ -522,28 +567,23 @@ func (s *Store) UpdateObject(object *Object, ObjectID string, userID int) error 
 func (s *Store) UpdateItem(item *Item, itemID int, userID int) error {
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
 	if err != nil {
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateItem transaction (user %v, item %v)", userID, itemID),
+		}
 	}
 
 	defer func() {
 		if err != nil {
-			log.Default().Println(err)
-			if tx != nil {
-				err := tx.Rollback()
-				if err != nil {
-					log.Default().Println(err)
-				}
-			}
-		} else {
-			err = tx.Commit()
-			if err != nil {
-				log.Default().Println(err)
-			}
+			tx.Rollback()
 		}
+		tx.Commit()
 	}()
 
 	if item == nil {
-		return s.Internal
+		return &InternalError{
+			Message: fmt.Sprintf("UpdateItem nil item"),
+		}
 	}
 
 	var itemName string
@@ -553,25 +593,40 @@ func (s *Store) UpdateItem(item *Item, itemID int, userID int) error {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return s.NotFound
+			return &NotFoundError{
+				Err:     err,
+				Message: fmt.Sprintf("UpdateItem item (user %v, item %v)", userID, itemID),
+			}
 		}
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateItem select query (user %v, item %v)", userID, itemID),
+		}
 	}
 	_, err = tx.Exec("UPDATE Items SET name = ?, quantity = ?, description = ?, owned_by = ? WHERE ownedBy_user = ? AND id =?",
 		item.Name, item.Quantity, item.Description, item.Container, userID, itemID)
 
 	if err != nil {
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateItem update item (user %v, item %v)", userID, itemID),
+		}
 	}
 
 	_, err = tx.Exec("DELETE FROM tags_items WHERE item_id = ?", itemID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return err
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateItem delete tags item (user %v, item %v)", userID, itemID),
+		}
 	}
 
 	err = s.setItemTags(tx, item.Tags, itemID)
 	if err != nil {
-		return err
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("UpdateItem set tags item (user %v, item %v)", userID, itemID),
+		}
 	}
 
 	return nil
@@ -580,20 +635,25 @@ func (s *Store) UpdateItem(item *Item, itemID int, userID int) error {
 func (s *Store) DeleteObject(objectID string, userID int) error {
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
 	if err != nil {
-		s.Internal.message = err.Error()
-		return s.Internal
-	}
-	defer func() {
-		err = tx.Commit()
-		if err != nil {
-			log.Default().Println(err)
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("DeleteObject transaction (user %v, object %v)", userID, objectID),
 		}
-	}()
+	}
+
 	_, err = tx.Exec("DELETE FROM Objects WHERE id = ? and ownedBy_user = ?", objectID, userID)
 	if err != nil {
-		log.Default().Println(err)
-		_ = tx.Rollback()
-		return s.Internal
+		if errors.Is(err, sql.ErrNoRows) {
+			return &NotFoundError{
+				Err:     err,
+				Message: fmt.Sprintf("DeleteObject Requested object (user %v, object %v)", userID, objectID),
+			}
+		}
+		tx.Rollback()
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("DeleteObject delete object (user %v, object %v)", userID, objectID),
+		}
 	}
 
 	return nil
@@ -603,52 +663,24 @@ func (s *Store) DeleteItem(itemID int, userID int) error {
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
 
 	if err != nil {
-		log.Default().Println(err)
-		return s.Internal
-	}
-
-	defer func() {
-		err = tx.Commit()
-		if err != nil {
-			log.Default().Println(err)
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("DeleteItem transaction (user %v, item %v)", userID, itemID),
 		}
-	}()
+	}
 
 	_, err = tx.Exec("DELETE FROM Items WHERE ownedBy_user = ? and id = ?", userID, itemID)
 	if err != nil {
-		_ = tx.Rollback()
-		log.Default().Println(err)
-		return s.Internal
-	}
-	return nil
-}
-
-func (s *Store) addBatchItems(tx *sql.Tx, items []Item, userID int, ownerID int) error {
-	if items == nil {
-		return s.FormatError
-	}
-
-	stmt, err := tx.Prepare(
-		"INSERT INTO Items (name, quantity, description, owned_by, ownedBy_user) VALUES (?,?,?,?,?)")
-	if err != nil {
-		return s.Internal
-	}
-
-	defer stmt.Close()
-
-	for _, item := range items {
-		res, err := stmt.Exec(item.Name, item.Quantity, item.Description, ownerID, userID)
-		if err != nil {
-			return s.Internal
-		}
-		if id, err := res.LastInsertId(); err != nil {
-			return s.Internal
-		} else {
-			item.Id = int(id)
-			err = s.setItemTags(tx, item.Tags, int(id))
-			if err != nil {
-				return s.Internal
+		if errors.Is(err, sql.ErrNoRows) {
+			return &NotFoundError{
+				Err:     err,
+				Message: fmt.Sprintf("DeleteItem item (user %v, item %v)", userID, itemID),
 			}
+		}
+		tx.Rollback()
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("DeleteItem delete item (user %v, item %v)", userID, itemID),
 		}
 	}
 	return nil
@@ -657,28 +689,23 @@ func (s *Store) addBatchItems(tx *sql.Tx, items []Item, userID int, ownerID int)
 func (s *Store) GetObject(objectID string, userID int) (*Object, error) {
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
 	if err != nil {
-		return nil, s.Internal
+		return nil, &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("GetObject transaction (user %v, object %v)", userID, objectID),
+		}
 	}
 
 	defer func() {
 		if err != nil {
-			log.Default().Println(err)
-			if tx != nil {
-				err := tx.Rollback()
-				if err != nil {
-					log.Default().Println(err)
-				}
-			}
-		} else {
-			err = tx.Commit()
-			if err != nil {
-				log.Default().Println(err)
-			}
+			tx.Rollback()
 		}
+		tx.Commit()
 	}()
 
 	if objectID == "" {
-		return nil, s.FormatError
+		return nil, &FormatError{
+			Message: fmt.Sprintf("ObjectId is required (user %v)", userID),
+		}
 	}
 
 	res := tx.QueryRow(
@@ -692,9 +719,15 @@ func (s *Store) GetObject(objectID string, userID int) (*Object, error) {
 	var objID int
 	if err = res.Scan(&objID, &obj.Description, &obj.CreationDate, &container); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, s.NotFound
+			return nil, &NotFoundError{
+				Err:     err,
+				Message: fmt.Sprintf("GetObject (user %v, object %v)", userID, objectID),
+			}
 		}
-		return nil, s.Internal
+		return nil, &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("GetObject select query (user %v, object %v)", userID, objectID),
+		}
 	}
 
 	if container.Valid {
@@ -705,7 +738,10 @@ func (s *Store) GetObject(objectID string, userID int) (*Object, error) {
 
 	obj.Tags, err = s.readObjectTags(tx, objID)
 	if err != nil {
-		return nil, s.Internal
+		return nil, &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("GetObject read tags object (user %v, object %v)", userID, objectID),
+		}
 	}
 	obj.Items = []Item{}
 	itemsFound, err := tx.Query(
@@ -713,7 +749,10 @@ func (s *Store) GetObject(objectID string, userID int) (*Object, error) {
 		objID, userID)
 
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, s.Internal
+		return nil, &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("GetObject read item (user %v, object %v)", userID, objectID),
+		}
 	} else if errors.Is(err, sql.ErrNoRows) {
 		return &obj, nil
 	}
@@ -725,7 +764,10 @@ func (s *Store) GetObject(objectID string, userID int) (*Object, error) {
 			if errors.Is(err, sql.ErrNoRows) {
 				return &obj, nil
 			}
-			return nil, s.Internal
+			return nil, &InternalError{
+				Err:     err,
+				Message: fmt.Sprintf("GetObject read item (user %v, object %v)", userID, objectID),
+			}
 		}
 
 		item.Tags, err = s.readItemsTags(tx, item.Id)
@@ -734,7 +776,10 @@ func (s *Store) GetObject(objectID string, userID int) (*Object, error) {
 			if errors.Is(err, sql.ErrNoRows) {
 				item.Tags = []string{}
 			}
-			return nil, s.Internal
+			return nil, &InternalError{
+				Err:     err,
+				Message: fmt.Sprintf("GetObject read item tags (user %v, item %v)", userID, item.Id),
+			}
 		}
 		item.Container = objectID
 		obj.Items = append(obj.Items, item)
@@ -747,14 +792,17 @@ func (s *Store) GetItem(itemID int, userID int) (*Item, error) {
 
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
 	if err != nil {
-		return nil, s.Internal
+		return nil, &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("GetItem transaction (user %v, item %v)", userID, itemID),
+		}
 	}
 
 	defer func() {
-		err := tx.Commit()
 		if err != nil {
-			log.Default().Println(err)
+			tx.Rollback()
 		}
+		tx.Commit()
 	}()
 
 	var container sql.NullInt64
@@ -764,10 +812,14 @@ func (s *Store) GetItem(itemID int, userID int) (*Item, error) {
 
 	if err = row.Scan(&item.Name, &description, &item.Quantity, &container); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			s.NotFound.message = err.Error()
-			return nil, s.NotFound
+			return nil, &NotFoundError{
+				Message: fmt.Sprintf("GetItem item (user %v, item %v)", userID, itemID),
+			}
 		}
-		return nil, s.Internal
+		return nil, &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("GetItem select query (user %v, item %v)", userID, itemID),
+		}
 	}
 
 	item.Tags, err = s.readItemsTags(tx, item.Id)
@@ -775,8 +827,10 @@ func (s *Store) GetItem(itemID int, userID int) (*Item, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			item.Tags = []string{}
 		} else {
-			log.Default().Println(err)
-			return nil, s.Internal
+			return nil, &InternalError{
+				Err:     err,
+				Message: fmt.Sprintf("GetItem read item tags (user %v item %v)", userID, itemID),
+			}
 		}
 	}
 
@@ -784,8 +838,9 @@ func (s *Store) GetItem(itemID int, userID int) (*Item, error) {
 		res := tx.QueryRow("SELECT name FROM Objects WHERE id = ?", container.Int64)
 		if err = res.Scan(&item.Container); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				s.NotFound.message = err.Error()
-				return nil, s.NotFound
+				return nil, &NotFoundError{
+					Message: fmt.Sprintf("GetItem (user %v item %v)", userID, itemID),
+				}
 			}
 		}
 	} else {
@@ -799,10 +854,4 @@ func (s *Store) GetItem(itemID int, userID int) (*Item, error) {
 	}
 
 	return item, nil
-}
-
-// SearchItems TODO: implement
-func (s *Store) SearchItems(param string, value string, userID int) (map[int]Item, error) {
-	panic("Implement me")
-	return nil, nil
 }
