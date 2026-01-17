@@ -54,11 +54,16 @@ CREATE INDEX idx_items_name ON Items (name);
 CREATE INDEX idx_usernames ON Users (username);
 CREATE INDEX idx_ownedBy_user ON Objects (ownedBy_user);
 
+CREATE VIRTUAL TABLE search USING fts5(
+    user,
+    id,
+    name,
+    description,
+    type,
+    tokenize='unicode61'
+);
+
 CREATE UNIQUE INDEX named_items_users ON Objects (name, ownedBy_user);
 CREATE UNIQUE INDEX tags_items_index on tags_items (item_id, tag_id);
 CREATE UNIQUE INDEX tags_obj_index on tags_objects (object_id, tag_id);
 CREATE UNIQUE INDEX nesting_objects on Objects (name, owner_id, ownedBy_user);
-
-
-CREATE VIEW 'user0_objects' AS SELECT * FROM Objects WHERE ownedBy_user = 0;
-CREATE VIEW 'user0_items' AS SELECT * FROM Items WHERE ownedBy_user = 0;
