@@ -191,8 +191,7 @@ button.delete-btn:hover {
 }
 
 .notificationPanel {
-    display: flex;
-    flex-direction: column;
+    height: 100%;
     position: fixed;
     top: 0;
     right: 20px;
@@ -228,11 +227,11 @@ button.delete-btn:hover {
 }
 
 .notification.show {
-    animation: fade-in 0.4s ease-in forwards;
+    animation: drop-down 0.5s ease-in-out forwards;
 }
 
 .notification.hide {
-    animation: fade-out 0.3s ease-out forwards;
+    animation: move-up 1s ease-out forwards;
 }
 
 .sub-item-list {
@@ -316,6 +315,7 @@ details summary {
     background: var(--panel-bg);
     border-radius: 4px;
     margin-bottom: 5px;
+    min-width: fit-content;
 }
 
 #response {
@@ -393,6 +393,33 @@ details summary {
     }
 }
 
+@keyframes drop-down {
+    from {
+        opacity: 0.5;
+        visibility: hidden;
+        transform: translateY(-110vh);
+    }
+    to {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+}
+
+@keyframes move-up {
+    from {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-110vh);
+    }
+}
+
 div.fade-out{
     animation: fade-out 0.4s ease-out forwards;
 }
@@ -400,3 +427,4 @@ div.fade-out{
 div.fade-in{
     animation: fade-in 0.4s ease-in forwards;
 }
+

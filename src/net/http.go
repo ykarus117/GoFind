@@ -171,20 +171,19 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
 	switch r.Method {
 	case "GET":
 		item, err := s.storage.GetItem(itemID, req.userID)
 		if err != nil {
-			if errors.Is(err, s.storage.NotFound) {
+			if errors.As(err, &Store.NotFound) {
 				w.WriteHeader(http.StatusNotFound)
 			} else {
+				log.Default().Println(err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 			return
 		}
-
+		w.Header().Set("Content-Type", "application/json")
 		data, err := json.Marshal(item)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -201,7 +200,7 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		err := s.storage.UpdateItem(req.Item, itemID, req.userID)
 		if err != nil {
-			if errors.Is(err, s.storage.NotFound) {
+			if errors.As(err, &Store.NotFound) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
@@ -213,8 +212,7 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 	case "DELETE":
 		err := s.storage.DeleteItem(itemID, req.userID)
 		if err != nil {
-			var notFoundError *Store.NotFoundError
-			if !errors.As(err, &notFoundError) {
+			if !errors.As(err, &Store.NotFound) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
@@ -248,19 +246,18 @@ func (s *Server) objectOp(w http.ResponseWriter, r *http.Request) {
 
 	objectID := r.PathValue("id")
 
-	w.Header().Set("Content-Type", "application/json")
-
 	switch r.Method {
 	case "GET":
 		obj, err := s.storage.GetObject(objectID, req.userID)
 		if err != nil {
-			if errors.Is(err, s.storage.NotFound) {
+			if errors.As(err, &Store.NotFound) {
 				w.WriteHeader(http.StatusNotFound)
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		data, err := json.Marshal(obj)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -279,6 +276,7 @@ func (s *Server) objectOp(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
 		w.WriteHeader(http.StatusCreated)
 		break
 	case "DELETE":
@@ -329,7 +327,7 @@ func (s *Server) view(w http.ResponseWriter, r *http.Request) {
 
 	view, err := s.storage.GetView(req.userID)
 	if err != nil {
-		if errors.Is(err, s.storage.NotFound) {
+		if errors.As(err, &Store.NotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

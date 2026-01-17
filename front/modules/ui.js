@@ -6,13 +6,12 @@ const detailsPanel = document.getElementById('detailsPanel');
 const details = document.getElementById('details');
 const notificationPanel = document.getElementById('notificationPanel');
 
-let timer = null;
 let detailsPanelVisible = true
 
 function removeNotificationCard(node) {
     node.classList.remove('show');
     node.classList.add('hide');
-    notificationPanel.removeChild(node)
+    setTimeout(() => {notificationPanel.removeChild(node)}, 1000);
 }
 
 export const ui = {
@@ -61,12 +60,11 @@ export const ui = {
         text.innerText = content;
         div.append(text);
         notificationPanel.append(div);
-        timer = setTimeout(()=>{removeNotificationCard(div)}, 3500);
+        let timer = setTimeout(()=>{removeNotificationCard(div)}, 3500);
         div.addEventListener('mouseover', () => {
             clearTimeout(timer);
             timer = setTimeout(() => {removeNotificationCard(div)}, 2000);
         })
-
     },
 
     showCreatePanel: () => {

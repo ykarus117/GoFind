@@ -47,8 +47,8 @@ export function drawTree(data, callback) {
     // Creates the SVG container.
     const svg = d3
         .create("svg")
-        .attr("width", width)
-        .attr("height", height)
+        .attr("width", '100%')
+        .attr("height", '100%')
         .attr("viewBox", [-cx, -cy, width, height])
         .attr("class", "tree");
 
@@ -70,6 +70,7 @@ export function drawTree(data, callback) {
         .attr('x', -cx)
         .attr('y', -cy)
         .attr('fill', 'url(#dot-pattern)')
+        .attr('preserveAspectRatio', 'none')
         .attr('width', '100%')
         .attr('height', '100%');
 
@@ -131,12 +132,10 @@ export function drawTree(data, callback) {
             .attr("fill-opacity", 0)
             .attr("stroke-opacity", 0)
             .on("click", (event, d) => {
-                if (d.depth != 0) {
+                callback(d.data)
+                if (d.depth !== 0 && event?.ctrlKey) {
                     d.children = d.children ? null : d._children;
                     update(event, d);
-                }
-                if ((!d._children || d.children) || (d.data["ref"] !== undefined)) {
-                    callback(d.data)
                 }
             })
             .on('mouseover', function(event, d) {

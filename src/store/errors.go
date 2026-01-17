@@ -15,6 +15,10 @@ type NotFoundError struct {
 	Err     error
 }
 
+var NotFound = &NotFoundError{}
+var Internal = &InternalError{}
+var Format = &FormatError{}
+
 func (e *InternalError) Error() string {
 	return fmt.Sprintf("Storage internal error from: %s \n %v", e.Message, e.Err)
 }

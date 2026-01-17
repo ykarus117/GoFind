@@ -28,11 +28,8 @@ type store interface {
 }
 
 type Store struct {
-	database    *db.Database
-	ctx         context.Context
-	NotFound    *NotFoundError
-	Internal    *InternalError
-	FormatError *FormatError
+	database *db.Database
+	ctx      context.Context
 }
 
 type ViewItem struct {
@@ -378,7 +375,10 @@ func (s *Store) AddObject(obj *Object, userID int) error {
 func (s *Store) AddItem(item *Item, userID int) error {
 	tx, err := s.database.DB.BeginTx(s.ctx, nil)
 	if err != nil {
-		return s.Internal
+		return &InternalError{
+			Err:     err,
+			Message: fmt.Sprintf("AddItem transaction (user %v)", userID),
+		}
 	}
 
 	defer func() {
@@ -481,11 +481,15 @@ func (s *Store) UpdateObject(object *Object, ObjectID string, userID int) error 
 	}
 
 	if object == nil {
-		return s.Internal
+		return &InternalError{
+			Message: "UpdateObject nil object",
+		}
 	}
 
 	if ObjectID == "" {
-		return s.FormatError
+		return &FormatError{
+			Message: "UpdateObject empty ObjectID",
+		}
 	}
 
 	var container sql.NullInt64
