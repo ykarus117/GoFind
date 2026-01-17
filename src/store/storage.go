@@ -588,7 +588,7 @@ func (s *Store) UpdateItem(item *Item, itemID int, userID int) error {
 
 	var itemName string
 
-	row := tx.QueryRow("SELECT name FROM ITEMS WHERE ownedBy_user = ? AND id = ?", userID, itemID)
+	row := tx.QueryRow("SELECT name FROM Items WHERE ownedBy_user = ? AND id = ?", userID, itemID)
 	err = row.Scan(&itemName)
 
 	if err != nil {
@@ -641,7 +641,7 @@ func (s *Store) DeleteObject(objectID string, userID int) error {
 		}
 	}
 
-	_, err = tx.Exec("DELETE FROM Objects WHERE id = ? and ownedBy_user = ?", objectID, userID)
+	_, err = tx.Exec("DELETE FROM Objects WHERE name = ? AND ownedBy_user = ?", objectID, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return &NotFoundError{
@@ -655,7 +655,7 @@ func (s *Store) DeleteObject(objectID string, userID int) error {
 			Message: fmt.Sprintf("DeleteObject delete object (user %v, object %v)", userID, objectID),
 		}
 	}
-
+	tx.Commit()
 	return nil
 }
 
@@ -683,6 +683,7 @@ func (s *Store) DeleteItem(itemID int, userID int) error {
 			Message: fmt.Sprintf("DeleteItem delete item (user %v, item %v)", userID, itemID),
 		}
 	}
+	tx.Commit()
 	return nil
 }
 
@@ -804,6 +805,9 @@ func (s *Store) GetItem(itemID int, userID int) (*Item, error) {
 		}
 		tx.Commit()
 	}()
+
+	// just for convenience
+	item.Id = itemID
 
 	var container sql.NullInt64
 	var description sql.NullString

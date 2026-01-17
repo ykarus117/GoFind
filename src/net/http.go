@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/rs/cors"
 )
@@ -75,7 +76,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 	cookie, err := s.auth.Login(username, password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
@@ -96,10 +97,11 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 	password := r.PostForm.Get("password")
 
 	if username == "" || password == "" {
-		http.Error(w, "username or password is empty", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	err = s.auth.Register(username, password)
 
 	if err != nil {
@@ -169,6 +171,8 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+
 	switch r.Method {
 	case "GET":
 		item, err := s.storage.GetItem(itemID, req.userID)
@@ -186,8 +190,6 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
 
 		_, err = w.Write(data)
 		if err != nil {
@@ -246,6 +248,8 @@ func (s *Server) objectOp(w http.ResponseWriter, r *http.Request) {
 
 	objectID := r.PathValue("id")
 
+	w.Header().Set("Content-Type", "application/json")
+
 	switch r.Method {
 	case "GET":
 		obj, err := s.storage.GetObject(objectID, req.userID)
@@ -262,8 +266,6 @@ func (s *Server) objectOp(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
 
 		_, err = w.Write(data)
 		if err != nil {
@@ -307,12 +309,15 @@ func (s *Server) serveFront(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./front/login.html")
 		return
 	}
+	if strings.HasPrefix(r.URL.Path, "/modules") {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+	}
 	http.FileServer(http.Dir("./front")).ServeHTTP(w, r)
 }
 
 func (s *Server) view(w http.ResponseWriter, r *http.Request) {
 	req, err := s.requestValidation(r)
-
+	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -336,7 +341,7 @@ func (s *Server) view(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+
 	_, err = w.Write(data)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
