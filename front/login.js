@@ -1,3 +1,5 @@
+import {ui} from "./modules/ui.js";
+
 const fetchOptions = { credentials: 'same-origin' };
 
 document.getElementById('loginSection').addEventListener('keydown', enterLogin);
@@ -18,13 +20,17 @@ async function login()  {
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
-    try {
         const response = await fetch(`${API_BASE_URL}/login`, { ...fetchOptions, method: 'POST', body: formData });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        window.location.replace("./main.html");
-    } catch (error) {
-        document.getElementById('loginError').innerHTML = error.message;
-    }
+        if (!response.ok) {
+            if (response.status === 401) {
+                ui.showNotification('Username or password not valid', 'warning');
+            }else{
+                ui.showNotification('Error: ' + response.status, 'error');
+            }
+        }else {
+
+            window.location.replace("./main.html");
+        }
 }
 
 async function register() {
@@ -33,18 +39,18 @@ async function register() {
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
-    try {
         const response = await fetch(`${API_BASE_URL}/register`, {
             ...fetchOptions,
             method: 'POST',
             body: formData,
         })
-        if (!(response.ok)) throw new Error(`Error: ${await response.text()}`);
-        document.getElementById('loginError').style.color = 'green';
-        document.getElementById('loginError').innerHTML = 'User Registered'
-    }catch (error) {
-        document.getElementById('loginError').innerHTML = error.message;
-    }
+        if (!response.ok) {
+            if (response.status === 400) {
+                ui.showNotification('Username or password not valid', 'warning');
+            }
+        }else{
+            ui.showNotification(`${username} registered`, 'success');
+        }
 }
 
 window.onload = () => {

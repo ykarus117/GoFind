@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GoFind - User Login</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="login.js" defer></script>
+  <link href="style.css" rel="stylesheet">
+  <script type="module" src="login.js"></script>
 </head>
 <body>
 <h1 class="site-header" style="border-bottom: 0;">
   <span style="color: dodgerblue; margin-right: -3px" > Go </span><span style="color: white; margin-left: -3px"> Find </span>
   <a href="https://github.com" class="github-link"><img src="assets/github-mark.svg" alt="github repository" width="32" height="32"></a></h1>
+  <div class="notificationPanel" id="notificationPanel"></div>
 <div id="loginSection" style="padding: 2em; max-width: 400px; margin: 8em auto; background: var(--panel-bg); border-radius: 10px;">
   <img src="assets/perrythegopher.png" alt="perrythegopher" class="peeking-gopher" width="96" height="150">
   <h2>User Login</h2>
@@ -18,9 +19,8 @@
   <div class="form-group"><label for="login-password">Password:</label><input type="password" id="login-password" placeholder="Enter password"></div>
   <div class="content">
     <button id="loginBtn" class="login">Login</button>
-    <button id="registerBtn" class="register" >Register new user</button>
+    <button id="registerBtn" class="register">Register new user</button>
   </div>
-  <div id="loginError" class="errorMessage"></div>
 </div>
 </body>
 </html>

@@ -1,12 +1,16 @@
 :root {
     --bg-color: #333;
     --text-color: #ffffff;
+    --success-text-color: #4CAF50;
+    --error-text-color: #ff0000;
+    --warning-text-color: #f0ad4e;
     --border-color: #555;
     --primary-color: #007acc;
     --primary-hover: #005c99;
     --danger-color: #eb2033;
     --danger-hover: #f60316;
     --panel-bg: #2a2a2a;
+    --panel-bg-transparent: rgba(42,42,42,0.7);
     --input-bg: #444;
     --card-bg: #3a3a3a;
     --card-hover: #4a4a4a;
@@ -186,13 +190,49 @@ button.delete-btn:hover {
     color: darkred
 }
 
-.notification {
-    color: var(--text-color);
-    position: absolute;
-    top: 95%;
-    right: 95%;
+.notificationPanel {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    right: 20px;
     margin: 1em auto;
-    max-width: 10%;
+    min-width: 15%;
+}
+
+.notification {
+    background: var(--panel-bg-transparent);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    padding: 5px;
+    visibility: hidden;
+    margin: 1em auto;
+    text-align: center;
+    width: 100%;
+}
+
+.notification:hover {
+    background: var(--card-hover);
+}
+
+.notification.success{
+    box-shadow: 0 3px 3px var(--success-text-color);
+}
+
+.notification.warning {
+    box-shadow: 0 3px 3px var(--warning-text-color);
+}
+
+.notification.error {
+    box-shadow: 0 3px 3px var(--error-text-color);
+}
+
+.notification.show {
+    animation: fade-in 0.4s ease-in forwards;
+}
+
+.notification.hide {
+    animation: fade-out 0.3s ease-out forwards;
 }
 
 .sub-item-list {
