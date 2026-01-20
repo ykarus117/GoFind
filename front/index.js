@@ -115,7 +115,7 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('detailSectionBtn').addEventListener('click', () => {
-    ui.toggleDetails();
+    ui.hideDetailsPanel()
 })
 
 document.getElementById('newBtn').addEventListener('click', () => {

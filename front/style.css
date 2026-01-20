@@ -72,6 +72,7 @@ h2.view {
     flex-direction: column;
     flex: 1;
     padding: 0.5em;
+    transition: all ease-out 0.5s;
 }
 
 .right-panel {
@@ -107,6 +108,24 @@ input {
 input.search {
     border-radius: 20px;
 }
+
+.searchRow {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.searchDropDown {
+    display: none;
+    position: relative;
+}
+
+.searchDropDown ul {
+    list-style: none;
+}
+
 
 .treeContainer {
     display: block;
@@ -191,9 +210,12 @@ button.delete-btn:hover {
 }
 
 .notificationPanel {
+    display: flex;
+    flex-direction: column;
     height: 100%;
     position: fixed;
     top: 0;
+    pointer-events: none;
     right: 20px;
     margin: 1em auto;
     min-width: 15%;
@@ -202,6 +224,7 @@ button.delete-btn:hover {
 .notification {
     background: var(--panel-bg-transparent);
     backdrop-filter: blur(10px);
+    pointer-events: all;
     border-radius: 10px;
     padding: 5px;
     visibility: hidden;
@@ -420,11 +443,48 @@ details summary {
     }
 }
 
+@keyframes contract {
+    from {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        visibility: collapse;
+        transform: translateX(-110vw);
+        width: 0;
+        padding: 0;
+    }
+}
+
+@keyframes expand {
+    from {
+        opacity: 0;
+        visibility: collapse;
+        transform: translateX(-110vw);
+        width: 0;
+    }
+    to {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(0);
+    }
+}
+
 div.fade-out{
     animation: fade-out 0.4s ease-out forwards;
 }
 
 div.fade-in{
     animation: fade-in 0.4s ease-in forwards;
+}
+
+div.contract-left{
+    animation: contract 0.6s ease-in forwards;
+}
+
+div.expand-right{
+    animation: expand 0.6s ease-out forwards;
 }
 

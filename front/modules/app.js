@@ -3,10 +3,10 @@ const containerId = 'viewPanel';
 const container = document.getElementById(containerId);
 const rect = container ? container.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
 
-const width = Math.max(320, Math.floor(rect.width || window.innerWidth));
-const height = Math.max(240, Math.floor(rect.height || Math.floor(window.innerHeight * 0.6)));
+const width = Math.max(320, rect.width);
+const height = Math.max(240, rect.height);
 
-const gridSize= 35;
+const gridSize= 25;
 const gridDotSize= 2;
 const gridColor= '#e7e7e7';
 const cx= width * 0.5;
@@ -47,8 +47,6 @@ export function drawTree(data, callback) {
     // Creates the SVG container.
     const svg = d3
         .create("svg")
-        .attr("width", '100%')
-        .attr("height", '100%')
         .attr("viewBox", [-cx, -cy, width, height])
         .attr("class", "tree");
 
@@ -70,7 +68,6 @@ export function drawTree(data, callback) {
         .attr('x', -cx)
         .attr('y', -cy)
         .attr('fill', 'url(#dot-pattern)')
-        .attr('preserveAspectRatio', 'none')
         .attr('width', '100%')
         .attr('height', '100%');
 
@@ -112,7 +109,6 @@ export function drawTree(data, callback) {
         const transition = svg
             .transition()
             .duration(190)
-            .attr("height", height);
 
         // Update the nodes…
         const node = gNode.selectAll("g").data(nodes, (d) => d.id || (d.id = ++i));

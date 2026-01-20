@@ -78,17 +78,19 @@ export const ui = {
     },
 
     showDetailsPanel: () => {
-        detailsPanel.classList.remove('fade-out');
-        detailsPanel.classList.add('fade-in');
+        detailsPanelVisible = true;
+        detailsPanel.classList.remove('contract-left');
+        detailsPanel.classList.add('expand-right');
     },
 
     hideDetailsPanel: () => {
-        detailsPanel.classList.remove('fade-in');
-        detailsPanel.classList.add('fade-out');
+        detailsPanelVisible = false;
+        detailsPanel.classList.remove('expand-right');
+        detailsPanel.classList.add('contract-left');
     },
 
     toggleDetails: () => {
-        if (detailsPanelVisible) {
+        if (!detailsPanelVisible) {
             ui.hideDetailsPanel();
         }else{
             ui.showDetailsPanel();
