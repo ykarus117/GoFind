@@ -26,6 +26,16 @@ body {
     accent-color: #01a1f8;
 }
 
+dt {
+    font-weight: bold;
+    font-family: Calibri, sans-serif;
+}
+
+dd {
+    list-style: none;
+    padding: 0.25em 0.5em;
+}
+
 h1 {
     display: flex;
     padding-bottom: 0;
@@ -186,12 +196,30 @@ button:hover {
     background: var(--primary-hover);
 }
 
-button.delete-btn {
+button.edit {
+    width: 40px;
+    height: 40px;
+}
+
+button.save {
+    width: 40px;
+    height: 40px;
+    background: #4aaf4a;
+    border-color: #4aaf4a;
+}
+
+button.save:hover {
+    background: green;
+}
+
+button.delete {
+    width: 40px;
+    height: 40px;
     background: var(--danger-color);
     border-color: var(--danger-color);
 }
 
-button.delete-btn:hover {
+button.delete:hover {
     background: var(--danger-hover);
 }
 

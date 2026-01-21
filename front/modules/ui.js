@@ -5,6 +5,7 @@ const itemPanel = document.getElementById('itemsPanel');
 const detailsPanel = document.getElementById('detailsPanel');
 const details = document.getElementById('details');
 const notificationPanel = document.getElementById('notificationPanel');
+const searchResults = document.getElementById('searchResults');
 
 let detailsPanelVisible = true
 
@@ -96,5 +97,10 @@ export const ui = {
             ui.showDetailsPanel();
         }
         detailsPanelVisible = !detailsPanelVisible
+    },
+
+    showSearchResults: () => {
+        searchResults.classList.remove('hidden');
+        searchResults.classList.add('show');
     },
 }

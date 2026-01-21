@@ -1,6 +1,7 @@
 import {drawTree} from "./modules/app.js";
 import {ui} from "./modules/ui.js";
 import {api} from "./modules/api.js";
+import {Item} from "./modules/item.js";
 
 const API_BASE_URL = location.origin;
 const responseArea = document.getElementById('response');
@@ -37,16 +38,9 @@ async function Update() {
 
 async function callback(selected) {
     if (selected["ref"] != null) {
-        const response = await fetch(`${API_BASE_URL}/item/${selected["ref"]}`, {
-            ...fetchOptions,
-            method: 'GET',
-            headers: {'Accept': 'application/json'},
-        })
-        if (response.ok) {
-            ui.populateDetails(await response.json());
-        }else{
-            ui.showNotification('Error: ' + response.statusText, 'error');
-        }
+        const item = await new Item(selected["ref"]).init();
+        ui.showDetailsPanel()
+        item.render("details",'view');
     } else {
         const response = await fetch(`${API_BASE_URL}/object/${selected["name"]}`, {
             ...fetchOptions,
@@ -91,17 +85,6 @@ function buildObject(form) {
 }
 
 // --- Event Listeners ---
-document.getElementById('updateBtn').addEventListener('click', async () => {
-    const form = document.getElementById('updateForm');
-    const name = document.getElementById('create-name').value;
-    const itemData = buildItem(form);
-    try {
-        const response = await api.updateItem(name,  itemData);
-        ui.showNotification(`Item ${name} updated`, 'success');
-    } catch (error) {
-        ui.showNotification("Error: " + error.message, 'error');
-    }
-});
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
     try {
@@ -150,6 +133,7 @@ document.getElementById('createObjectBtn').addEventListener('click', async () =>
 })
 
 document.getElementById('closePanel').addEventListener('click', () => {
+    console.log("HERE")
     ui.hideCreatePanel();
 })
 
@@ -168,4 +152,8 @@ document.getElementById('deleteBtn').addEventListener('click', () => {
         ui.showNotification('Error: ' + err.message, 'error');
     }
 
+})
+
+document.getElementById('searchBar').addEventListener('input', () => {
+    ui.showSearchResults();
 })
