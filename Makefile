@@ -1,7 +1,7 @@
 NAME = GoFind
 INSTPATH = /usr/local/bin/
 BIN = ./bin
-BUILD = go build -tags "sqlite_foreign_keys" -o
+BUILD = go build -tags "sqlite_foreign_keys fts5" -o
 WINDOWS = GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc
 LINUX = GOOS=linux GOARCH=amd64 CGO_ENABLED=1
 ARM64 = GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=arm-linux-gnueabihf-gcc CXX=0
