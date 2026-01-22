@@ -151,16 +151,9 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 
 // itemOp http://<location>/item/{itemID} [GET | POST | PUT | DELETE]
 func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
-	var err error
-
-	defer func() {
-		if err != nil {
-			log.Default().Println(err)
-		}
-	}()
-
 	req, err := s.requestValidation(r)
 	if err != nil {
+		log.Default().Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -175,6 +168,7 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		item, err := s.storage.GetItem(itemID, req.userID)
 		if err != nil {
+			log.Default().Println(err)
 			if errors.As(err, &Store.NotFound) {
 				w.WriteHeader(http.StatusNotFound)
 			} else {
@@ -186,12 +180,14 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		data, err := json.Marshal(item)
 		if err != nil {
+			log.Default().Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		_, err = w.Write(data)
 		if err != nil {
+			log.Default().Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -200,6 +196,7 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		err := s.storage.UpdateItem(req.Item, itemID, req.userID)
 		if err != nil {
+			log.Default().Println(err)
 			if errors.As(err, &Store.NotFound) {
 				w.WriteHeader(http.StatusNotFound)
 				return
@@ -212,6 +209,7 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 	case "DELETE":
 		err := s.storage.DeleteItem(itemID, req.userID)
 		if err != nil {
+			log.Default().Println(err)
 			if !errors.As(err, &Store.NotFound) {
 				w.WriteHeader(http.StatusNotFound)
 				return
@@ -225,6 +223,7 @@ func (s *Server) itemOp(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		err := s.storage.AddItem(req.Item, req.userID)
 		if err != nil {
+			log.Default().Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

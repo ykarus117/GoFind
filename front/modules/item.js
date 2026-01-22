@@ -101,7 +101,7 @@ export class Item {
     async update() {
         try {
             await api.updateItem(this.id, {Item: this})
-            ui.showNotification(`${this.name} updated successfully.`);
+            ui.showNotification(`${this.name} updated successfully.`, 'success');
         }catch (e) {
             ui.showNotification("Error while updating item" + e, "error");
         }

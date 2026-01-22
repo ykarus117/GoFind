@@ -609,24 +609,29 @@ func (s *Store) UpdateItem(item *Item, itemID int, userID int) error {
 	}
 
 	var objectId sql.NullInt64
-	row = tx.QueryRow("SELECT id FROM Objects WHERE ownedBy_user = ? AND name = ?", userID, item.Container)
-	err = row.Scan(&objectId)
 
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return &NotFoundError{
+	if item.Container != "" {
+		row = tx.QueryRow("SELECT id FROM Objects WHERE ownedBy_user = ? AND name = ?", userID, item.Container)
+		err = row.Scan(&objectId)
+
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return &NotFoundError{
+					Err:     err,
+					Message: fmt.Sprintf("Object %v id not found (user %v)", item.Container, userID),
+				}
+			}
+			return &InternalError{
 				Err:     err,
-				Message: fmt.Sprintf("Object %v id not found (user %v)", item.Container, userID),
+				Message: fmt.Sprintf("UpdateItem select object id (user %v, item %v)", userID, itemID),
 			}
 		}
-		return &InternalError{
-			Err:     err,
-			Message: fmt.Sprintf("UpdateItem select object id (user %v, item %v)", userID, itemID),
-		}
+	} else {
+		objectId.Valid = false
 	}
 
 	_, err = tx.Exec("UPDATE Items SET name = ?, quantity = ?, description = ?, owned_by = ? WHERE ownedBy_user = ? AND id =?",
-		item.Name, item.Quantity, item.Description, objectId.Int64, userID, itemID)
+		item.Name, item.Quantity, item.Description, objectId, userID, itemID)
 
 	if err != nil {
 		return &InternalError{
