@@ -1,4 +1,4 @@
-# GoFind
+# GoFind ![alt text](https://github.com/ykarus117/GoFind/blob/master/front/assets/perrythegopher.png?raw=true "perry the goopher")
 
 GoFind is a lightweight household inventory management application designed to help you store and retrieve information about items and their locations in your home. With minimal system resource requirements, GoFind offers a practical solution for keeping track of belongings, whether you're organizing a closet, managing storage, or simply remembering where you placed that important document. 
 
@@ -109,4 +109,4 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE."
 
 ## AI usage disclaimer
-No AI model was used to explicitly write code, some code suggestions were derived from llms (as google intregrated AI search feature, or integrated IDE models) this readme has been auto generated from github Copilot and manually edited.
+No AI model was used to explicitly write code, some code suggestions were derived from llms (as google intregrated AI search feature, or integrated IDE models) this readme has been auto generated from github Copilot and manually edited. The mascotte was generate using Gemini, it seemed fitting (I'm terrible at drawing).
