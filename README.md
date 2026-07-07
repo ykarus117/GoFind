@@ -4,6 +4,8 @@ GoFind is a lightweight household inventory management application designed to h
 
 I'm developing this application to help myself at home as I'm the kind of person that struggles with remembering even the existance of household objects ("_out of sight out of mind_"). The project is not yet complete and has to be considered on active development. This project at the current state **not suitable** for any production environment (it has no TSL/SSL support for example) if you choose to self-host it and expose it to the internet please consider using a reverse proxy.
 
+![alt text](https://imgur.com/wvXhBRo.png "GoFind webpage screenshot")
+
 ## Features
 
 Built with simplicity and efficiency in mind, GoFind allows you to:
