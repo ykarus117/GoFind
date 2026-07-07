@@ -2,7 +2,7 @@
 
 GoFind is a lightweight household inventory management application designed to help you store and retrieve information about items and their locations in your home. With minimal system resource requirements, GoFind offers a practical solution for keeping track of belongings, whether you're organizing a closet, managing storage, or simply remembering where you placed that important document. 
 
-I'm developing this application to help myself at home as I'm the kind of person that struggles with remembering the existance of household objects ("out of sight out of mind"). The project is not yet complete and has to be considered on ongoing development. This project at the current state not suitable for any production environment (it has no TSL/SSL support for example) if you choose to self-host it and expose it to the internet consider using a reverse proxy.
+I'm developing this application to help myself at home as I'm the kind of person that struggles with remembering even the existance of household objects ("_out of sight out of mind_"). The project is not yet complete and has to be considered on active development. This project at the current state **not suitable** for any production environment (it has no TSL/SSL support for example) if you choose to self-host it and expose it to the internet please consider using a reverse proxy.
 
 ## Features
 
@@ -109,4 +109,4 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE."
 
 ## AI usage disclaimer
-No AI model was used to explicitly write code, some code suggestions were derived from llms (as google intregrated AI search feature) this readme has been auto generated from github Copilot and manually edited.
+No AI model was used to explicitly write code, some code suggestions were derived from llms (as google intregrated AI search feature, or integrated IDE models) this readme has been auto generated from github Copilot and manually edited.
