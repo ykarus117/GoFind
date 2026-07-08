@@ -16,9 +16,9 @@ jobs:
       - name: Build
         run: CGO_ENABLED=1 go build -v -tags "sqlite_foreign_keys fts5" ./...
       - name: Test with the Go CLI
-        run: CGO_ENABLED=1 go test -v -tags -json "sqlite_foreign_keys fts5" ./... > testResult.json
+        run: CGO_ENABLED=1 go test -v -tags "sqlite_foreign_keys fts5" -json ./... > testResult.json
       - name: Upload Go test results
         uses: actions/upload-artifact@v4
         with:
           name: Go-results-1.24
-          path: TestResult.json
+          path: testResult.json
