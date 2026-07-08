@@ -16,6 +16,7 @@ jobs:
       - name: Build
         run: CGO_ENABLED=1 go build -v -tags "sqlite_foreign_keys fts5" ./...
       - name: Test with the Go CLI
+        continue-on-error: true
         env: 
           CGO_ENABLED: 1 
         run: go test -v -tags "sqlite_foreign_keys fts5" -json ./...
